@@ -8,6 +8,9 @@
 #ifndef __OPENTRACE_V2__
 #define __OPENTRACE_V2__
 
+#include <stdint.h>
+#include <Arduino.h>
+
 #define OT_ORG      "SG_MOH"
 #define OT_BUFSIZE  256
 #define OT_PROTOVER 2
@@ -24,7 +27,7 @@
 // Types
 //
 
-typedef OT_TempID byte[OT_TEMPID_SIZE];
+typedef struct OT_TempID { uint8_t id[OT_TEMPID_SIZE]; } OT_TempID;
 
 //
 // Structs
@@ -44,17 +47,17 @@ class _OT_ProtocolV2
   public:
     _OT_ProtocolV2();
 
-    // quantize total seconds by 15 mins (900), mod by OT_TEMPID_MAX and return the relative TempID
-    const OT_TempID& get_tempid(uint32_t seconds);
+    // gets the tempid by time from RTC, in seconds
+    const OT_TempID& get_tempid_by_time(uint32_t seconds);
 
     // sets the Nth tempid
-    void set_tempid(const OT_TempID &id, uint16_t n);
+    bool set_tempid(const OT_TempID &id, uint16_t n);
 
     // Pack read request params into frame : out buf
-    bool prepare_peripheral_read_request(byte (&buf)[OT_BUFSIZE]);
+    bool prepare_peripheral_read_request(uint8_t (&buf)[OT_BUFSIZE]);
 
     // Process frame into Connection Record : buf, addr
-    bool process_peripheral_write_request(byte (&buf)[OT_BUFSIZE],
+    bool process_peripheral_write_request(uint8_t (&buf)[OT_BUFSIZE],
                                           String centralAddress);
 
     // pack write request params into frame : rssi, txPower, out buf
@@ -63,7 +66,7 @@ class _OT_ProtocolV2
                                        byte (&buf)[OT_BUFSIZE]);
 
     // Process frame into ConnectionRecord
-    bool process_central_read_request(byte (&buf)[OT_BUFSIZE],
+    bool process_central_read_request(uint8_t (&buf)[OT_BUFSIZE],
                                       String peripheralAddress,
                                       uint8_t rssi,
                                       uint8_t txPower);

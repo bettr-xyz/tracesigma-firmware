@@ -1,4 +1,5 @@
 #include "hal.h"
+#include "opentracev2.h"
 
 // Notes:
 // - look at mods/boards.diff.txt -- set CPU to 80mhz instead of 240mhz
