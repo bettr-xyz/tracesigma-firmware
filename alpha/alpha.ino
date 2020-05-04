@@ -10,7 +10,8 @@ bool powerSaveTest = false;
 
 void setup() {
   TS_HAL.begin();
-
+  TS_HAL.ble_init();
+  
   // Reduce screen brightness to minimum visibility to reduce power consumption
   TS_HAL.lcd_brightness(12);
 

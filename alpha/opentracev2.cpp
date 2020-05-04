@@ -30,9 +30,7 @@ void _OT_ProtocolV2::begin()
     memset(&this->tempIds[i], i, OT_TEMPID_SIZE);
   }
 
-  // Setup BLE and GATT profile
-  TS_HAL.ble_init();
-  
+  // Setup BLE and GATT profile 
   this->bleServer = TS_HAL.ble_server_get();
   this->bleServer->setCallbacks(this);
   this->bleService = bleServer->createService(serviceUUID);
@@ -43,7 +41,7 @@ void _OT_ProtocolV2::begin()
 
   this->bleAdvertising = bleServer->getAdvertising();
   this->bleAdvertising->addServiceUUID(serviceUUID);
-  this->bleAdvertising->setScanResponse(false); // we don't have data payload in scan
+  this->bleAdvertising->setScanResponse(true);  // TODO: do we need this? 
   this->bleAdvertising->setMinPreferred(0x06);  // functions that help with iPhone connections issue
   // TODO: find out what setMin and setMax interval really means
 }
