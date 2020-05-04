@@ -1,3 +1,4 @@
+#include "cleanbox.h"
 #include "hal.h"
 #include "opentracev2.h"
 
@@ -6,7 +7,6 @@
 //
 
 bool powerSaveTest = false;
-bool bleEnabled = true;
 
 void setup() {
   TS_HAL.begin();
@@ -15,7 +15,7 @@ void setup() {
   TS_HAL.lcd_brightness(12);
 
   TS_HAL.lcd_cursor(40, 0);
-  TS_HAL.lcd_printf("RTC TEST");
+  TS_HAL.lcd_printf("ALPHA TEST");
 
   if(powerSaveTest)
   {
@@ -23,10 +23,8 @@ void setup() {
     TS_HAL.lcd_sleep(true);
   }
 
-  if(bleEnabled)
-  {
-    TS_HAL.ble_init();
-  }
+  OT_ProtocolV2.begin();
+  
 }
 
 void loop() {
@@ -44,38 +42,34 @@ void loop() {
 
   // blink once a second
   TS_HAL.setLed(TS_Led::Red, true);
-  TS_HAL.sleep(TS_SleepMode::Light, 1);
+  TS_HAL.sleep(TS_SleepMode::Default, 1);
   TS_HAL.setLed(TS_Led::Red, false);
+
+  // don't turn off radio if we have connected clients
+  uint16_t connectedCount = OT_ProtocolV2.get_connected_count();
+  Serial.print("Devices connected: ");
+  Serial.println(connectedCount);
+
+  uint16_t sleepDuration = TS_HAL.random_get(1000, 3000);
   
-  TS_HAL.sleep(TS_SleepMode::Light, 1999);
-
-  if(bleEnabled)
-  {
-    // Blocking scan
-    BLEScanResults results = TS_HAL.ble_scan(1);
-    
-    uint16_t deviceCount = results.getCount();
-    Serial.print("Devices found: ");
-    Serial.println(deviceCount);
-
-    BLEUUID &serviceUUID = OT_ProtocolV2.getServiceUUID();
-    
-    for (uint32_t i = 0; i < deviceCount; i++)
-    {
-      BLEAdvertisedDevice device = results.getDevice(i);
-
-      // filter by service uuid
-      if(!device.isAdvertisingService(serviceUUID)) continue;
-
-      BLEAddress deviceAddress = device.getAddress();
-      uint8_t txPower = device.getTXPower();
-      int rssi = device.getRSSI();
-
-      Serial.println(deviceAddress.toString().c_str());
-      Serial.println(txPower);
-      Serial.println(rssi);
-    }
+  if(connectedCount > 0) {
+    TS_HAL.sleep(TS_SleepMode::Default, sleepDuration);
+  } else {
+    TS_HAL.sleep(TS_SleepMode::Light, sleepDuration);
   }
+
+  // enable advertising
+  OT_ProtocolV2.advertising_start();
+
+  // spend up to 1s scanning
+  OT_ProtocolV2.scan_and_connect(1);
+
+  // disable advertising, get back to sleep
+  OT_ProtocolV2.advertising_stop();
+
+  // Give some time for comms after broadcasts
+  // TODO: by right should wait T time after last uncompleted handshake before going back to sleep
+  TS_HAL.sleep(TS_SleepMode::Default, 100);
 }
 
 

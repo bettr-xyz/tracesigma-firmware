@@ -1,8 +1,6 @@
 #include "hal.h"
 #include "esp_pm.h"
 
-
-
 // Lower level library include decisions go here
 
 #ifdef HAL_M5STICK_C
@@ -21,10 +19,15 @@ _TS_HAL::_TS_HAL() {}
 void _TS_HAL::begin()
 {
   log_init();
+  this->bleInitialized = false;
+
+  // init ble before rng
+  BLEDevice::init(DEVICE_NAME);
+  this->random_seed();
 
 #ifdef HAL_M5STICK_C
   M5.begin();
-  
+
   M5.Lcd.setRotation(3);
   M5.Lcd.fillScreen(BLACK);
   M5.Lcd.setTextSize(1);
@@ -44,13 +47,33 @@ void _TS_HAL::update()
 
 
 //
+// Random
+//
+
+// seeds the randomizer based on hardware impl
+// - ESP32 has a true rng if BT/Wifi is enabled, p-rng otherwise
+void _TS_HAL::random_seed()
+{
+  randomSeed(esp_random());
+}
+
+// a random number between min and max-1 (long)
+// - TODO: we theoretically can just use esp_random directly
+uint32_t _TS_HAL::random_get(uint32_t min, uint32_t max)
+{
+  return random(min, max);
+}
+
+
+
+//
 // LCD
 //
 
 void _TS_HAL::lcd_brightness(uint8_t level)
 {
-  if(level > 100) level = 100;
-  else if(level < 0) level = 0;
+  if (level > 100) level = 100;
+  else if (level < 0) level = 0;
 
 #ifdef HAL_M5STICK_C
   // m5stickc valid levels are 7-15 for some reason
@@ -63,7 +86,7 @@ void _TS_HAL::lcd_backlight(bool on)
 {
 #ifdef HAL_M5STICK_C
   M5.Axp.SetLDO2(on);
-#endif  
+#endif
 }
 
 void _TS_HAL::lcd_sleep(bool enabled)
@@ -91,9 +114,9 @@ void _TS_HAL::lcd_printf(const char* t, int a, int b, int c)
 {
 #ifdef HAL_M5STICK_C
   M5.Lcd.printf(t, a, b, c);
-#endif  
+#endif
 }
-    
+
 
 
 //
@@ -115,7 +138,7 @@ void _TS_HAL::rtc_get(TS_DateTime &dt)
   dt.year   = RTC_DateStruct.Year;
 #endif
 }
-   
+
 void _TS_HAL::rtc_set(TS_DateTime &dt)
 {
 #ifdef HAL_M5STICK_C
@@ -142,7 +165,7 @@ void _TS_HAL::rtc_set(TS_DateTime &dt)
 void _TS_HAL::setLed(TS_Led led, bool enable)
 {
 #ifdef HAL_M5STICK_C
-  switch(led) {
+  switch (led) {
     case TS_Led::Red:
       digitalWrite(10, enable ? 0 : 1); // logic is reversed probably due to pulldown
       break;
@@ -154,26 +177,35 @@ void _TS_HAL::setLed(TS_Led led, bool enable)
 //
 // BLE
 //
-BLEScan* pBLEScan;
 
 void _TS_HAL::ble_init()
 {
-  BLEDevice::init(DEVICE_NAME);
+  if (!this->bleInitialized)
+  {
+    
 
-  pBLEScan = BLEDevice::getScan();  //create new scan
-  pBLEScan->setActiveScan(true);    //active scan uses more power, but get results faster
-  // pBLEScan->setInterval(100);    // in ms , left to defaults
-  // pBLEScan->setWindow(99);
+    pBLEServer = BLEDevice::createServer();
+    pBLEAdvertiser = BLEDevice::getAdvertising();
+
+    this->pBLEScan = BLEDevice::getScan();  //create new scan
+    this->pBLEScan->setActiveScan(true);    //active scan uses more power, but get results faster
+    // pBLEScan->setInterval(100);    // in ms , left to defaults
+    // pBLEScan->setWindow(99);
+
+    this->bleInitialized = true;
+  }
 }
 
 BLEScanResults _TS_HAL::ble_scan(uint8_t seconds)
 {
-  pBLEScan->clearResults();
-  return pBLEScan->start(seconds, false);
+  this->pBLEScan->clearResults();
+  return this->pBLEScan->start(seconds, false);
 }
 
-
-
+BLEServer* _TS_HAL::ble_server_get()
+{
+  return this->pBLEServer;
+}
 
 
 //
@@ -182,14 +214,14 @@ BLEScanResults _TS_HAL::ble_scan(uint8_t seconds)
 
 void _TS_HAL::sleep(TS_SleepMode sleepMode, uint32_t ms)
 {
-  switch(sleepMode)
+  switch (sleepMode)
   {
     case TS_SleepMode::Light:
 #ifdef HAL_M5STICK_C
       M5.Axp.LightSleep(SLEEP_MSEC(ms));
 #endif
       break;
-      
+
     case TS_SleepMode::Deep:
 #ifdef HAL_M5STICK_C
       M5.Axp.DeepSleep(SLEEP_MSEC(ms));

@@ -43,13 +43,6 @@ enum TS_Led
 
 class _TS_HAL
 {
-  private:
-    //
-    // Platform-specific variables
-    //
-
-
-
   public:
     _TS_HAL();
 
@@ -59,6 +52,20 @@ class _TS_HAL
 
     void begin();
     void update();
+
+
+
+    //
+    // Random
+    // - depending on platform, implement seeding and random generator
+    // - some platforms may have hardware rng
+
+    // seeds the randomizer based on hardware impl
+    void random_seed();
+
+    // a random number between min and max-1 (long)
+    uint32_t random_get(uint32_t, uint32_t);
+
 
 
     //
@@ -101,6 +108,7 @@ class _TS_HAL
     // BLE
     //
     void ble_init();
+    BLEServer* ble_server_get();
     BLEScanResults ble_scan(uint8_t seconds);
 
     
@@ -141,6 +149,12 @@ class _TS_HAL
 
     // logs a failure message and reboots
     void fail_reboot(const char*);
+
+  private:
+    bool            bleInitialized;
+    BLEScan*        pBLEScan;
+    BLEServer*      pBLEServer;
+    BLEAdvertising* pBLEAdvertiser;
 };
 
 extern _TS_HAL TS_HAL;
