@@ -10,10 +10,13 @@
 
 #include <stdint.h>
 #include <Arduino.h>
+#include <BLEUUID.h>
 
 #define OT_ORG      "SG_MOH"
 #define OT_BUFSIZE  256
 #define OT_PROTOVER 2
+#define OT_SERVICEID "B82AB3FC-1595-4F6A-80F0-FE094CC218F9"
+#define OT_CHARACTERISTICID "117BDD58-57CE-4E7A-8E87-7CCCDDA2A804"
 
 // TempID size = UID_SIZE + TIME_SIZE * 2
 // Ref: https://github.com/opentrace-community/opentrace-cloud-functions/blob/master/functions/src/opentrace/getTempIDs.ts
@@ -47,12 +50,23 @@ class _OT_ProtocolV2
   public:
     _OT_ProtocolV2();
 
+    //////////
+    // UUIDs
+    BLEUUID& getServiceUUID();
+    BLEUUID& getCharacteristicUUID();
+
+    //////////
+    // TempID
+
     // gets the tempid by time from RTC, in seconds
     const OT_TempID& get_tempid_by_time(uint32_t seconds);
 
     // sets the Nth tempid
     bool set_tempid(const OT_TempID &id, uint16_t n);
 
+    //////////
+    // Serialization/deserialization
+    
     // Pack read request params into frame : out buf
     bool prepare_peripheral_read_request(uint8_t (&buf)[OT_BUFSIZE]);
 

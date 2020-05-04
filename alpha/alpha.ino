@@ -47,18 +47,48 @@ void loop() {
   TS_HAL.sleep(TS_SleepMode::Light, 1);
   TS_HAL.setLed(TS_Led::Red, false);
   
-  TS_HAL.sleep(TS_SleepMode::Light, 999);
+  TS_HAL.sleep(TS_SleepMode::Light, 1999);
 
   if(bleEnabled)
   {
+    // Blocking scan
     BLEScanResults results = TS_HAL.ble_scan(1);
+    
     uint16_t deviceCount = results.getCount();
     Serial.print("Devices found: ");
     Serial.println(deviceCount);
+
+    BLEUUID &serviceUUID = OT_ProtocolV2.getServiceUUID();
+    
     for (uint32_t i = 0; i < deviceCount; i++)
     {
       BLEAdvertisedDevice device = results.getDevice(i);
-      Serial.println(device.toString().c_str());
+
+      // filter by service uuid
+      if(!device.isAdvertisingService(serviceUUID)) continue;
+
+      BLEAddress deviceAddress = device.getAddress();
+      uint8_t txPower = device.getTXPower();
+      int rssi = device.getRSSI();
+
+      Serial.println(deviceAddress.toString().c_str());
+      Serial.println(txPower);
+      Serial.println(rssi);
     }
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
