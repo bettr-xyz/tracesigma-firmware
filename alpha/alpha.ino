@@ -37,6 +37,7 @@ void loop() {
     TS_HAL.rtc_get(datetime);
     
     TS_HAL.lcd_cursor(0, 15);
+    // TODO: does not work with F()
     TS_HAL.lcd_printf("Date: %04d-%02d-%02d\n",     datetime.year, datetime.month, datetime.day);
     TS_HAL.lcd_printf("Time: %02d : %02d : %02d\n", datetime.hour, datetime.minute, datetime.second);
   }
@@ -48,7 +49,7 @@ void loop() {
 
   // don't turn off radio if we have connected clients
   uint16_t connectedCount = OT_ProtocolV2.get_connected_count();
-  Serial.print("Devices connected: ");
+  Serial.print(F("Devices connected: "));
   Serial.println(connectedCount);
 
   uint16_t sleepDuration = TS_HAL.random_get(1000, 3000);
