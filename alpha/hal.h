@@ -32,6 +32,7 @@ struct TS_DateTime
 enum TS_SleepMode
 {
   Default,  // most accurate, equivalent to delay
+  Task,     // allow task scheduling, better for longer durations
   Light,    // less accurate, has wakeup delay
   Deep,     // suspends cpu, wake w/ reboot
 };

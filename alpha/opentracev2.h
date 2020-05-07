@@ -13,7 +13,11 @@
 #include <BLEUUID.h>
 
 #define OT_ORG      "SG_MOH"
-#define OT_PROTOVER "2"
+#define OT_PROTOVER 2
+
+#define OT_CR_MAXLEN  256
+#define OT_CR_ID_MAX  128
+#define OT_CR_SHORT_MAX  32
 
 #define OT_SERVICEID        "B82AB3FC-1595-4F6A-80F0-FE094CC218F9"
 #define OT_CHARACTERISTICID "117BDD58-57CE-4E7A-8E87-7CCCDDA2A804"
@@ -32,6 +36,14 @@ typedef std::string OT_TempID;
 // Structs
 //
 
+// Connection record
+struct OT_ConnectionRecord
+{
+  std::string id;
+  std::string org;
+  std::string deviceType;
+  int8_t      rssi;   // valid range: -128 to 127
+};
 
 //
 // Classes
@@ -64,8 +76,9 @@ class _OT_ProtocolV2
     //////////
     // Client scan and connect
     
-    bool scan_and_connect(uint8_t seconds);
+    bool scan_and_connect(uint8_t seconds, int8_t rssiCutoff);
 
+    bool connect_and_exchange(BLEAdvertisedDevice *device, int8_t rssi);
 
     // TODO: callback for storage
 
@@ -89,21 +102,20 @@ class _OT_ProtocolV2
     // Serialization/deserialization
     
     // Pack read request params into frame
-    void prepare_peripheral_read_request(std::string &buf, std::string &id);
+    void prepare_peripheral_read_request(std::string& buf,
+                                         std::string &id);
 
-    // Process frame into Connection Record : buf, addr
-    bool process_peripheral_write_request(std::string& data,
-                                          std::string& centralAddress);
+    // Process frame into Connection Record
+    bool process_peripheral_write_request(std::string& payload,
+                                          OT_ConnectionRecord& connectionRecord);
 
-    // pack write request params into frame : rssi, txPower, out buf
-    std::string& prepare_central_write_request(uint8_t rssi,
-                                               uint8_t txPower);
+    // pack write request params into frame
+    void prepare_central_write_request(std::string& buf,
+                                       int8_t rssi);
 
     // Process frame into ConnectionRecord
-    bool process_central_read_request(std::string& data,
-                                      std::string& peripheralAddress,
-                                      uint8_t rssi,
-                                      uint8_t txPower);
+    bool process_central_read_request(std::string& payload,
+                                      OT_ConnectionRecord& connectionRecord);
 
   private:
     // Store OT_TEMPID_MAX TempIDs for rotation
@@ -119,12 +131,10 @@ class _OT_ProtocolV2
     BLECharacteristic *bleCharacteristic;
     BLEAdvertising    *bleAdvertising;
 
-    // NOTE: no need for synchronization as callbacks writing to this are from the ESP firmware worker
-    uint16_t  bleConnectedClients;
-
     // Caches the json string to be put in characteristic cache
     // - we do not want to repeatedly recompute this string, as its only updated once every 15 min
     std::string       characteristicCache;
+    OT_TempID         charCacheTempId;
     SemaphoreHandle_t characteristicCacheMutex;
 };
 

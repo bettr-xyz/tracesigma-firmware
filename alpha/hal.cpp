@@ -182,8 +182,6 @@ void _TS_HAL::ble_init()
 {
   if (!this->bleInitialized)
   {
-    
-
     pBLEServer = BLEDevice::createServer();
     pBLEAdvertiser = BLEDevice::getAdvertising();
 
@@ -228,6 +226,10 @@ void _TS_HAL::sleep(TS_SleepMode sleepMode, uint32_t ms)
 #endif
       break;
 
+    case TS_SleepMode::Task:
+      vTaskDelay(ms / portTICK_PERIOD_MS);
+      break;
+      
     default:
       delay(ms);
   }
