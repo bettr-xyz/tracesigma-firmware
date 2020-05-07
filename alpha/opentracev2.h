@@ -78,7 +78,7 @@ class _OT_ProtocolV2
     
     bool scan_and_connect(uint8_t seconds, int8_t rssiCutoff);
 
-    bool connect_and_exchange(BLEAdvertisedDevice *device, int8_t rssi);
+    bool connect_and_exchange(BLEAddress address, int8_t rssi);
 
     // TODO: callback for storage
 
@@ -127,6 +127,7 @@ class _OT_ProtocolV2
     BLEUUID   characteristicUUID;
     
     BLEServer         *bleServer;
+    BLEClient         *bleClient;
     BLEService        *bleService;
     BLECharacteristic *bleCharacteristic;
     BLEAdvertising    *bleAdvertising;

@@ -61,7 +61,7 @@ void loop() {
     TS_HAL.sleep(TS_SleepMode::Light, sleepDuration);
   }
 
-  if(skips >= 5) {
+  if(skips >= 5) { // vary the interval between scans here
     skips = 0;
     
     // spend up to 1s scanning, lowest acceptable rssi: -95
@@ -74,7 +74,8 @@ void loop() {
 
   // enable advertising
   OT_ProtocolV2.advertising_start();
-  TS_HAL.sleep(TS_SleepMode::Task, 1000);  // just advertise for 1s
+  // just advertise for 1s
+  TS_HAL.sleep(TS_SleepMode::Task, 1000);
   // disable advertising, get back to sleep
   OT_ProtocolV2.advertising_stop();
 

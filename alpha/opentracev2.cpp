@@ -39,6 +39,7 @@ void _OT_ProtocolV2::begin()
 
 
   // Setup BLE and GATT profile
+  BLEDevice::setMTU(OT_CR_MAXLEN);  // try to send whole message in 1 frame
   this->bleServer = TS_HAL.ble_server_get();
   this->bleServer->setCallbacks(this);
   this->bleService = bleServer->createService(this->serviceUUID);
@@ -49,9 +50,11 @@ void _OT_ProtocolV2::begin()
 
   this->bleAdvertising = this->bleServer->getAdvertising();
   this->bleAdvertising->addServiceUUID(this->serviceUUID);
-  this->bleAdvertising->setScanResponse(true);  // TODO: do we need this?
+  this->bleAdvertising->setScanResponse(true);  // TODO: do we need this? apparently need this to be true.
   this->bleAdvertising->setMinPreferred(0x06);  // functions that help with iPhone connections issue
   // TODO: find out what setMin and setMax interval really means
+
+  this->bleClient = BLEDevice::createClient();
 }
 
 BLEUUID& _OT_ProtocolV2::getServiceUUID()
@@ -110,26 +113,28 @@ bool _OT_ProtocolV2::scan_and_connect(uint8_t seconds, int8_t rssiCutoff)
     // We do not need a map of last-seen as this function should have long intervals between calls
     // Connect to each one and read + write iff parameters are correct
     // TODO: see if we can parallelize this process
-    this->connect_and_exchange(&device, rssi);
+    this->connect_and_exchange(deviceAddress, rssi);
   }
 }
 
-bool _OT_ProtocolV2::connect_and_exchange(BLEAdvertisedDevice *device, int8_t rssi)
+bool _OT_ProtocolV2::connect_and_exchange(BLEAddress address, int8_t rssi)
 {
-  BLEClient* pClient = BLEDevice::createClient();
-  BLEDevice::setMTU(OT_CR_MAXLEN);  // try to send whole message in 1 frame
-  
-  // pClient->setClientCallbacks(new MyCallbacks());
-
-  // Connect to the remove BLE Server.
-  pClient->connect(device);
+  // Connect to the BLE Server
+  // - we need BLE_ADDR_TYPE_RANDOM as phones are using random addressing which changes over time
+  this->bleClient->connect(address, BLE_ADDR_TYPE_RANDOM);
   BLERemoteService* pRemoteService;
   BLERemoteCharacteristic* pRemoteCharacteristic;
 
-  pRemoteService = pClient->getService(this->serviceUUID);
+  if(!this->bleClient->isConnected()) 
+  {
+    Serial.println(F("Client connection failed"));
+    return false;
+  }
+
+  pRemoteService = this->bleClient->getService(this->serviceUUID);
   if (pRemoteService == NULL)
   {
-    pClient->disconnect();
+    if(this->bleClient->isConnected()) this->bleClient->disconnect();
     Serial.println(F("Failed to find our service UUID"));
     return false;
   }
@@ -137,14 +142,14 @@ bool _OT_ProtocolV2::connect_and_exchange(BLEAdvertisedDevice *device, int8_t rs
   pRemoteCharacteristic = pRemoteService->getCharacteristic(this->characteristicUUID);
   if (pRemoteCharacteristic == NULL)
   {
-    pClient->disconnect();
+    if(this->bleClient->isConnected()) this->bleClient->disconnect();
     Serial.println(F("Failed to find our characteristic UUID"));
     return false;
   }
 
   if(!pRemoteCharacteristic->canRead() || !pRemoteCharacteristic->canWrite())
   {
-    pClient->disconnect();
+    if(this->bleClient->isConnected()) this->bleClient->disconnect();
     Serial.println(F("Unable to read or write"));
     return false;
   }
@@ -159,7 +164,7 @@ bool _OT_ProtocolV2::connect_and_exchange(BLEAdvertisedDevice *device, int8_t rs
   buf = pRemoteCharacteristic->readValue();
 
   // no need for ble client after this point
-  pClient->disconnect();  
+  if(this->bleClient->isConnected()) this->bleClient->disconnect();  
   
   if(!this->process_central_read_request(buf, connectionRecord))
   {
