@@ -2,6 +2,8 @@
 #include "hal.h"
 #include "opentracev2.h"
 
+#include <SPIFFS.h>
+
 // Notes:
 // - look at mods/boards.diff.txt -- set CPU to 80mhz instead of 240mhz
 //
@@ -25,7 +27,17 @@ void setup() {
   }
 
   OT_ProtocolV2.begin();
-  
+
+
+  // format on error, basepath, maxOpenFiles
+  SPIFFS.begin(true, "/f", 1);
+
+  Serial.print("FFS totalBytes: ");
+  Serial.println(SPIFFS.totalBytes());
+  Serial.print("FFS usedBytes: ");
+  Serial.println(SPIFFS.usedBytes());
+
+  SPIFFS.end();
 }
 
 int skips = 0;
