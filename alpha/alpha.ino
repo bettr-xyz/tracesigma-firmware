@@ -30,14 +30,17 @@ void setup() {
 
 
   // format on error, basepath, maxOpenFiles
-  SPIFFS.begin(true, "/f", 1);
+  /*SPIFFS.begin(true, "/f", 1);
 
   Serial.print("FFS totalBytes: ");
   Serial.println(SPIFFS.totalBytes());
   Serial.print("FFS usedBytes: ");
   Serial.println(SPIFFS.usedBytes());
 
-  SPIFFS.end();
+  SPIFFS.end();*/
+
+  TS_HAL.logcat("crashCount: ");
+  TS_HAL.log(TS_PersistMem.crashCount);
 }
 
 int skips = 0;

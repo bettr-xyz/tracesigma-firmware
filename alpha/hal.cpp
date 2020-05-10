@@ -11,6 +11,9 @@
 
 #endif
 
+// Persistent memory
+RTC_NOINIT_ATTR _TS_PersistMem TS_PersistMem;
+
 
 // Your one and only
 _TS_HAL TS_HAL;
@@ -19,6 +22,7 @@ _TS_HAL::_TS_HAL() {}
 void _TS_HAL::begin()
 {
   log_init();
+  persistmem_init();
   this->bleInitialized = false;
 
   // init ble before rng
@@ -206,6 +210,7 @@ BLEServer* _TS_HAL::ble_server_get()
 }
 
 
+
 //
 // Power management
 //
@@ -244,8 +249,10 @@ void _TS_HAL::power_off()
 
 void _TS_HAL::reset()
 {
+  TS_PersistMem.gracefulShutdown = true;
   ESP.restart();
 }
+
 
 
 //
@@ -259,6 +266,29 @@ void _TS_HAL::log_init()
 #endif
 }
 
+
+
+//
+// Persistmem
+//
+
+void _TS_HAL::persistmem_init()
+{
+  if(TS_PersistMem.validStart != TS_PERSISTMEM_VALID || TS_PersistMem.validEnd != TS_PERSISTMEM_VALID)
+  {
+    // clear all counters
+    memset(&TS_PersistMem, 0, sizeof(TS_PersistMem));
+    TS_PersistMem.validStart = TS_PERSISTMEM_VALID;
+    TS_PersistMem.validEnd = TS_PERSISTMEM_VALID;
+  }
+  else if(TS_PersistMem.gracefulShutdown == false)
+  {
+    ++TS_PersistMem.crashCount;
+  }
+
+  // reset this after every reboot
+  TS_PersistMem.gracefulShutdown = false;
+}
 
 
 //

@@ -21,6 +21,7 @@
 #define HAL_SERIAL_LOG
 
 #define DEVICE_NAME "TraceStick V0.1"
+#define TS_PERSISTMEM_VALID 0xABCDFEDC
 
 struct TS_DateTime
 {
@@ -41,6 +42,18 @@ enum TS_Led
 {
   Red,
 };
+
+// Persistent memory
+// - across reboots
+// - 1KB
+struct _TS_PersistMem
+{
+  uint32_t validStart;  // validity guard bytes, data invalid if pattern not matched
+  bool     gracefulShutdown;
+  uint32_t crashCount;
+  uint32_t validEnd;  // validity guard bytes, data invalid if pattern not matched
+};
+extern _TS_PersistMem TS_PersistMem;
 
 class _TS_HAL
 {
@@ -142,6 +155,11 @@ class _TS_HAL
     #endif
     };
 
+
+    //
+    // Persistent memory
+    //
+    void persistmem_init();
 
 
     //
