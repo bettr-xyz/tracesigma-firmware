@@ -29,18 +29,18 @@ class _TS_Storage
     // get free space %
     uint8_t get_freespace_pct();
     uint8_t get_usedspace_pct();
+    uint32_t get_freespace();
+    uint32_t get_usedspace();
 
     //
     // File: ids
     // - strings are of uneven lengths, can either read-all or write-all
 
     // read all ids of maxCount, returns count of ids read
-    template<size_t N>
-    uint8_t file_ids_readall(uint8_t maxCount, std::string (&id)[N]);
+    uint8_t file_ids_readall(uint8_t maxCount, std::string *ids);
 
     // writeead all ids of maxCount, returns count of ids written
-    template<size_t N>
-    void file_ids_writeall(uint8_t maxCount, std::string (&id)[N]);
+    uint8_t file_ids_writeall(uint8_t maxCount, std::string *ids);
 };
 
 extern _TS_Storage TS_Storage;

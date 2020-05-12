@@ -140,19 +140,21 @@ class _TS_HAL
     void log_init();
 
     // Logs a line, similar to println
-    template<typename T> inline void log(T val)
+    template<typename T> inline _TS_HAL* log(T val)
     {
     #ifdef HAL_SERIAL_LOG
       Serial.println(val);
     #endif
+      return this;
     };
 
     // Logs without newline
-    template<typename T> inline void logcat(T val)
+    template<typename T> inline _TS_HAL* logcat(T val)
     {
     #ifdef HAL_SERIAL_LOG
-      Serial.write(val);
+      Serial.print(val);
     #endif
+      return this;
     };
 
 

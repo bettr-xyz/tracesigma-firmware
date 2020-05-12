@@ -8,7 +8,10 @@ void _TS_Storage::begin()
 {
   // format on error, basepath, maxOpenFiles
   // - use the shortest path, f - spi flash
-  SPIFFS.begin(true, "/f", 1);  
+  if(!SPIFFS.begin(true, "/f", 1))
+  {
+    TS_HAL.log("SPIFFS init error");
+  }
 }
 
 uint8_t _TS_Storage::get_freespace_pct()
@@ -24,20 +27,30 @@ uint8_t _TS_Storage::get_usedspace_pct()
   return (uint8_t)pct;
 }
 
-template<size_t N>
-uint8_t _TS_Storage::file_ids_readall(uint8_t maxCount, std::string (&id)[N])
+uint32_t _TS_Storage::get_freespace()
+{
+  uint32_t total = SPIFFS.totalBytes();
+  return total - SPIFFS.usedBytes();
+}
+
+uint32_t _TS_Storage::get_usedspace()
+{
+  return SPIFFS.usedBytes();
+}
+
+uint8_t _TS_Storage::file_ids_readall(uint8_t maxCount, std::string *ids)
 {
   // TODO: an optimization is to read only a lookup table, not all the contents
   
   uint8_t count = 0;
-  File f = SPIFFS.open("ids", "r+");
+  File f = SPIFFS.open("/ids", "r+");
   if(!f) return 0;
   
   for(uint8_t i = 0; i < maxCount; ++i)
   {
     if(!f.available()) break;
     String s = f.readStringUntil(',');
-    id[count] = std::string(s.c_str());
+    ids[count] = std::string(s.c_str());
     ++count;
   }
 
@@ -45,20 +58,20 @@ uint8_t _TS_Storage::file_ids_readall(uint8_t maxCount, std::string (&id)[N])
   return count;
 }
 
-template<size_t N>
-void _TS_Storage::file_ids_writeall(uint8_t maxCount, std::string (&id)[N])
+uint8_t _TS_Storage::file_ids_writeall(uint8_t maxCount, std::string *ids)
 {
   // TODO: test free space and run cleanup
   
-  File f = SPIFFS.open("ids", "w+");
+  File f = SPIFFS.open("/ids", "w+");
   if(!f) return 0;
 
   for(uint8_t i = 0; i < maxCount; ++i)
   {
-    f.print(id[i]);
+    f.print(ids[i].c_str());
     f.print(',');
   }
 
   f.close();
+  return maxCount;
 }
 

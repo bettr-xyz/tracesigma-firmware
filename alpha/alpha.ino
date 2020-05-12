@@ -24,15 +24,17 @@ void setup() {
     TS_HAL.lcd_backlight(false);
     TS_HAL.lcd_sleep(true);
   }
-
-  OT_ProtocolV2.begin();
+  
+  TS_HAL.logcat("Crash count: ")
+        ->log(TS_PersistMem.crashCount);
 
   TS_Storage.begin();
-  TS_HAL.logcat("Storage free: %");
-  TS_HAL.log(TS_Storage.get_freespace_pct());
+  TS_HAL.logcat("Storage free: ")
+        ->logcat(TS_Storage.get_freespace())
+        ->logcat(" bytes, %")
+        ->log(TS_Storage.get_freespace_pct());
 
-  TS_HAL.logcat("Crash count: ");
-  TS_HAL.log(TS_PersistMem.crashCount);
+  OT_ProtocolV2.begin();
 }
 
 int skips = 0;
