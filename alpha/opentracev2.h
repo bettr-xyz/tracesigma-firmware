@@ -11,6 +11,10 @@
 #include <stdint.h>
 #include <Arduino.h>
 #include <BLEUUID.h>
+#include <BLECharacteristic.h>
+#include <BLEServer.h>
+#include <BLEUtils.h>
+#include <BLEDevice.h>
 
 #define OT_ORG      "SG_MOH"
 #define OT_PROTOVER 2

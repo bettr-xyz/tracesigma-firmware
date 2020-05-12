@@ -1,8 +1,7 @@
 #include "cleanbox.h"
 #include "hal.h"
 #include "opentracev2.h"
-
-#include <SPIFFS.h>
+#include "storage.h"
 
 // Notes:
 // - look at mods/boards.diff.txt -- set CPU to 80mhz instead of 240mhz
@@ -28,18 +27,11 @@ void setup() {
 
   OT_ProtocolV2.begin();
 
+  TS_Storage.begin();
+  TS_HAL.logcat("Storage free: %");
+  TS_HAL.log(TS_Storage.get_freespace_pct());
 
-  // format on error, basepath, maxOpenFiles
-  /*SPIFFS.begin(true, "/f", 1);
-
-  Serial.print("FFS totalBytes: ");
-  Serial.println(SPIFFS.totalBytes());
-  Serial.print("FFS usedBytes: ");
-  Serial.println(SPIFFS.usedBytes());
-
-  SPIFFS.end();*/
-
-  TS_HAL.logcat("crashCount: ");
+  TS_HAL.logcat("Crash count: ");
   TS_HAL.log(TS_PersistMem.crashCount);
 }
 

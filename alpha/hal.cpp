@@ -12,6 +12,8 @@
 #endif
 
 // Persistent memory
+// - Retained across reboots
+// - Lost during powerdown
 RTC_NOINIT_ATTR _TS_PersistMem TS_PersistMem;
 
 
