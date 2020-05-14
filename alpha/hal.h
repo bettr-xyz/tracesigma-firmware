@@ -119,7 +119,14 @@ class _TS_HAL
     void sleep(TS_SleepMode, uint32_t);
     void power_off();
     void reset();
+    void power_setLDO2(bool);
+    void power_setLDO3(bool);
 
+    //
+    // I/O
+    //
+    bool IO_btnA_pressed();
+    bool IO_btnB_pressed();
     
     //
     // Common logging functions

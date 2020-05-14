@@ -247,6 +247,37 @@ void _TS_HAL::reset()
   ESP.restart();
 }
 
+void _TS_HAL::power_setLDO2(bool enabled)
+{
+#ifdef HAL_M5STICK_C
+  M5.Axp.SetLDO2(enabled);
+#endif
+}
+
+void _TS_HAL::power_setLDO3(bool enabled)
+{
+#ifdef HAL_M5STICK_C
+  M5.Axp.SetLDO3(enabled);
+#endif
+}
+
+//
+// I/O
+//
+
+bool _TS_HAL::IO_btnA_pressed()
+{
+#ifdef HAL_M5STICK_C
+  return M5.BtnA.wasPressed();
+#endif
+}
+
+bool _TS_HAL::IO_btnB_pressed()
+{
+#ifdef HAL_M5STICK_C
+  return M5.BtnB.wasPressed();
+#endif
+}
 
 //
 // Common logging functions
@@ -272,4 +303,3 @@ void _TS_HAL::fail_reboot(const char *msg)
   delay(3000);
   reset();
 }
-
