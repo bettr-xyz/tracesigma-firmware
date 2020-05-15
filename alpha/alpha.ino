@@ -31,14 +31,6 @@ void setup() {
   OT_ProtocolV2.begin();
 
   xTaskCreate(
-    blinkyTask, /* Task function. */
-    "Blinky", /* name of task. */
-    stackSize, /* Stack size of task */
-    NULL, /* parameter of the task */
-    1, /* priority of the task */
-    NULL); /* Task handle to keep track of created task */
-
-  xTaskCreate(
     traceTask, /* Task function. */
     "Trace", /* name of task. */
     stackSize * 10, /* Stack size of task */
@@ -123,26 +115,6 @@ void UITask (void* parameter)
   vTaskDelete(NULL);
 }
 
-void blinkyTask(void* parameter)
-{
-  UBaseType_t stackHighWaterMark;
-  /* loop forever */
-  for (;;)
-  {
-    stackHighWaterMark = uxTaskGetStackHighWaterMark(NULL);
-    Serial.print("blinky: ");
-    Serial.println(stackHighWaterMark);
-    // blink once a second
-    TS_HAL.setLed(TS_Led::Red, true);
-    delay(1000);
-    TS_HAL.setLed(TS_Led::Red, false);
-    delay(1000);
-  }
-  /* delete a task when finish,
-    this will never happen because this is an infinite loop */
-  vTaskDelete(NULL);
-}
-
 void traceTask(void* parameter)
 {
   UBaseType_t stackHighWaterMark;
@@ -154,6 +126,12 @@ void traceTask(void* parameter)
     stackHighWaterMark = uxTaskGetStackHighWaterMark(NULL);
     Serial.print("Trace: ");
     Serial.println(stackHighWaterMark);
+
+    // blink once a second
+    TS_HAL.setLed(TS_Led::Red, true);
+    TS_HAL.sleep(TS_SleepMode::Task, 1000);
+    TS_HAL.setLed(TS_Led::Red, false);
+    TS_HAL.sleep(TS_SleepMode::Task, 1000);
 
     // don't turn off radio if we have connected clients
     connectedCount = OT_ProtocolV2.get_connected_count();
