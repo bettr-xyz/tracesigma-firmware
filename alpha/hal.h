@@ -42,6 +42,12 @@ enum TS_Led
   Red,
 };
 
+enum TS_PowerMode
+{
+  Normal,
+  Low
+};
+
 class _TS_HAL
 {
   public:
@@ -119,8 +125,7 @@ class _TS_HAL
     void sleep(TS_SleepMode, uint32_t);
     void power_off();
     void reset();
-    void power_setLDO2(bool);
-    void power_setLDO3(bool);
+    void power_setPowerMode(TS_PowerMode);
 
     //
     // I/O

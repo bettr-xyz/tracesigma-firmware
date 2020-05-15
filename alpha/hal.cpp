@@ -247,18 +247,24 @@ void _TS_HAL::reset()
   ESP.restart();
 }
 
-void _TS_HAL::power_setLDO2(bool enabled)
-{
+void _TS_HAL::power_setPowerMode(TS_PowerMode powerMode) {
+  switch (powerMode)
+  {
+    case TS_PowerMode::Normal:
 #ifdef HAL_M5STICK_C
-  M5.Axp.SetLDO2(enabled);
+      M5.Axp.SetLDO2(true);
+      M5.Axp.SetLDO2(true);
 #endif
-}
+      break;
 
-void _TS_HAL::power_setLDO3(bool enabled)
-{
+    case TS_PowerMode::Low:
 #ifdef HAL_M5STICK_C
-  M5.Axp.SetLDO3(enabled);
+      M5.Axp.SetLDO2(false);
+      M5.Axp.SetLDO2(false);
 #endif
+      break;
+      
+  }
 }
 
 //
