@@ -44,7 +44,14 @@ void setup() {
     NULL, /* parameter of the task */
     2, /* priority of the task */
     NULL); /* Task handle to keep track of created task */
-    
+
+  xTaskCreate(
+    UITask, /* Task function. */
+    "UI", /* name of task. */
+    stackSize, /* Stack size of task */
+    NULL, /* parameter of the task */
+    3, /* priority of the task */
+    NULL); /* Task handle to keep track of created task */
 }
 
 int skips = 0;
