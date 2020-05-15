@@ -94,7 +94,7 @@ class _TS_HAL
     // TODO: for some reason templates aren't working with .ino
     void lcd_printf(const char*);
     void lcd_printf(const char*, int, int, int);
-    
+
 
 
     //
@@ -118,7 +118,7 @@ class _TS_HAL
     BLEServer* ble_server_get();
     BLEScanResults ble_scan(uint8_t seconds);
 
-    
+
     //
     // Power management
     //
@@ -131,7 +131,7 @@ class _TS_HAL
     // I/O
     //
     uint8_t IO_btnA_read();
-    
+
     //
     // Common logging functions
     //
@@ -140,17 +140,17 @@ class _TS_HAL
     // Logs a line, similar to println
     template<typename T> inline void log(T val)
     {
-    #ifdef HAL_SERIAL_LOG
+#ifdef HAL_SERIAL_LOG
       Serial.println(val);
-    #endif
+#endif
     };
 
     // Logs without newline
     template<typename T> inline void logcat(T val)
     {
-    #ifdef HAL_SERIAL_LOG
+#ifdef HAL_SERIAL_LOG
       Serial.write(val);
-    #endif
+#endif
     };
 
 

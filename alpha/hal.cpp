@@ -229,7 +229,7 @@ void _TS_HAL::sleep(TS_SleepMode sleepMode, uint32_t ms)
     case TS_SleepMode::Task:
       vTaskDelay(ms / portTICK_PERIOD_MS);
       break;
-      
+
     default:
       delay(ms);
   }
@@ -263,7 +263,7 @@ void _TS_HAL::power_setPowerMode(TS_PowerMode powerMode) {
       M5.Axp.SetLDO2(false);
 #endif
       break;
-      
+
   }
 }
 

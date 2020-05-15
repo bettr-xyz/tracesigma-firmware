@@ -50,7 +50,7 @@ struct OT_ConnectionRecord
 //
 
 class _OT_ProtocolV2
-: public BLECharacteristicCallbacks, public BLEServerCallbacks
+  : public BLECharacteristicCallbacks, public BLEServerCallbacks
 {
   public:
     _OT_ProtocolV2();
@@ -71,11 +71,11 @@ class _OT_ProtocolV2
     // sets the Nth tempid
     bool set_tempid(const OT_TempID &id, uint16_t n);
 
-    
+
 
     //////////
     // Client scan and connect
-    
+
     bool scan_and_connect(uint8_t seconds, int8_t rssiCutoff);
 
     bool connect_and_exchange(BLEAddress address, int8_t rssi);
@@ -97,10 +97,10 @@ class _OT_ProtocolV2
     void onDisconnect(BLEServer* pServer) override;
     void onWrite(BLECharacteristic *pCharacteristic) override;
     void onRead(BLECharacteristic* pCharacteristic) override;
-    
+
     //////////
     // Serialization/deserialization
-    
+
     // Pack read request params into frame
     void prepare_peripheral_read_request(std::string& buf,
                                          std::string &id);
@@ -125,7 +125,7 @@ class _OT_ProtocolV2
 
     BLEUUID   serviceUUID;
     BLEUUID   characteristicUUID;
-    
+
     BLEServer         *bleServer;
     BLEClient         *bleClient;
     BLEService        *bleService;

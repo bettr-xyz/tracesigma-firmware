@@ -83,7 +83,7 @@ void UITask (void* parameter)
   uint8_t reading;
   float timeSinceLastDebounce;
   bool equal;
-  
+
   /* loop forever */
   for (;;)
   {
@@ -92,7 +92,7 @@ void UITask (void* parameter)
     Serial.println(stackHighWaterMark);
 
     reading = TS_HAL.IO_btnA_read();
-    
+
     if (reading != lastStateBtnA) {
       lastDebounceTime = millis();
     }
@@ -102,10 +102,10 @@ void UITask (void* parameter)
     if (timeSinceLastDebounce > debounceDelay) {
       if (reading != currStateBtnA) {
         currStateBtnA = reading;
-        
+
         if (currStateBtnA == 1) {
           SavePower = !SavePower;
-          if (SavePower) {  
+          if (SavePower) {
             TS_HAL.power_setPowerMode(TS_PowerMode::Low);
           } else {
             TS_HAL.power_setPowerMode(TS_PowerMode::Normal);
@@ -128,7 +128,7 @@ void blinkyTask(void* parameter)
   UBaseType_t stackHighWaterMark;
   /* loop forever */
   for (;;)
-  { 
+  {
     stackHighWaterMark = uxTaskGetStackHighWaterMark(NULL);
     Serial.print("blinky: ");
     Serial.println(stackHighWaterMark);
@@ -148,13 +148,13 @@ void traceTask(void* parameter)
   UBaseType_t stackHighWaterMark;
   uint16_t connectedCount;
   uint16_t sleepDuration;
-  
+
   for (;;)
   {
     stackHighWaterMark = uxTaskGetStackHighWaterMark(NULL);
     Serial.print("Trace: ");
     Serial.println(stackHighWaterMark);
-    
+
     // don't turn off radio if we have connected clients
     connectedCount = OT_ProtocolV2.get_connected_count();
     sleepDuration = TS_HAL.random_get(1000, 3000);
