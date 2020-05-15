@@ -271,17 +271,10 @@ void _TS_HAL::power_setPowerMode(TS_PowerMode powerMode) {
 // I/O
 //
 
-bool _TS_HAL::IO_btnA_pressed()
+uint8_t _TS_HAL::IO_btnA_read()
 {
 #ifdef HAL_M5STICK_C
-  return M5.BtnA.wasPressed();
-#endif
-}
-
-bool _TS_HAL::IO_btnB_pressed()
-{
-#ifdef HAL_M5STICK_C
-  return M5.BtnB.wasPressed();
+  return M5.BtnA.read();
 #endif
 }
 

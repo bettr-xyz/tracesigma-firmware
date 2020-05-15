@@ -130,8 +130,7 @@ class _TS_HAL
     //
     // I/O
     //
-    bool IO_btnA_pressed();
-    bool IO_btnB_pressed();
+    uint8_t IO_btnA_read();
     
     //
     // Common logging functions
