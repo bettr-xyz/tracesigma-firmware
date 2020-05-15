@@ -94,8 +94,7 @@ void traceTask( void * parameter )
     if(connectedCount > 0) {
       TS_HAL.sleep(TS_SleepMode::Task, sleepDuration);
     } else {
-//      TS_HAL.sleep(TS_SleepMode::Light, sleepDuration);
-      TS_HAL.sleep(TS_SleepMode::Task, sleepDuration);
+      TS_HAL.sleep(TS_SleepMode::Light, sleepDuration);
     }
   
     if(skips >= 5) { // vary the interval between scans here
