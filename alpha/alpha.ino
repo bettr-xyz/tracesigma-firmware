@@ -63,7 +63,19 @@ void loop() {
 
 }
 
-void blinkyTask( void * parameter )
+void UITask (void* parameter)
+{
+  /* loop forever */
+  for(;;)
+  {
+    
+  }
+  /* delete a task when finish,
+  this will never happen because this is an infinite loop */
+  vTaskDelete(NULL);
+}
+
+void blinkyTask(void* parameter)
 {
   /* loop forever */
   for(;;)
@@ -76,10 +88,10 @@ void blinkyTask( void * parameter )
   }
   /* delete a task when finish,
   this will never happen because this is an infinite loop */
-  vTaskDelete( NULL );
+  vTaskDelete(NULL);
 }
 
-void traceTask( void * parameter )
+void traceTask(void* parameter)
 {
   uint16_t connectedCount;
   uint16_t sleepDuration;
@@ -123,5 +135,5 @@ void traceTask( void * parameter )
   }
   /* delete a task when finish,
   this will never happen because this is an infinite loop */
-  vTaskDelete( NULL );
+  vTaskDelete(NULL);
 }
