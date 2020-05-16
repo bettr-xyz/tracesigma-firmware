@@ -109,9 +109,6 @@ void UITask (void* parameter)
 
     TS_HAL.sleep(TS_SleepMode::Task, 25);
   }
-  /* delete a task when finish,
-  this will never happen because this is an infinite loop */
-  vTaskDelete(NULL);
 }
 
 void traceTask(void* parameter)
@@ -162,7 +159,4 @@ void traceTask(void* parameter)
 
     // TODO: call OT update_characteristic_cache at least once every 15 mins
   }
-  /* delete a task when finish,
-    this will never happen because this is an infinite loop */
-  vTaskDelete(NULL);
 }
