@@ -97,9 +97,9 @@ void UITask (void* parameter)
         if (currStateBtnA == 1) {
           SavePower = !SavePower;
           if (SavePower) {
-            TS_HAL.power_set_mode(TS_PowerMode::Low);
+            TS_HAL.lcd_sleep(false);
           } else {
-            TS_HAL.power_set_mode(TS_PowerMode::Normal);
+            TS_HAL.lcd_sleep(true);
           }
         }
       }
