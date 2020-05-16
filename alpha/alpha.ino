@@ -29,21 +29,21 @@ void setup() {
   }
 
   OT_ProtocolV2.begin();
+  
+  xTaskCreate(
+    UITask, /* Task function. */
+    "UI", /* name of task. */
+    10000, /* Stack size of task */
+    NULL, /* parameter of the task */
+    3, /* priority of the task */
+    NULL); /* Task handle to keep track of created task */
 
   xTaskCreate(
     traceTask, /* Task function. */
     "Trace", /* name of task. */
-    stackSize * 10, /* Stack size of task */
+    10000, /* Stack size of task */
     NULL, /* parameter of the task */
     2, /* priority of the task */
-    NULL); /* Task handle to keep track of created task */
-
-  xTaskCreate(
-    UITask, /* Task function. */
-    "UI", /* name of task. */
-    stackSize, /* Stack size of task */
-    NULL, /* parameter of the task */
-    3, /* priority of the task */
     NULL); /* Task handle to keep track of created task */
 }
 
@@ -51,22 +51,11 @@ int skips = 0;
 
 void loop() {
   TS_HAL.update();
-
-  if (!powerSaveTest)
-  {
-    TS_DateTime datetime;
-    TS_HAL.rtc_get(datetime);
-
-    TS_HAL.lcd_cursor(0, 15);
-    // TODO: does not work with F()
-    TS_HAL.lcd_printf("Date: %04d-%02d-%02d\n",     datetime.year, datetime.month, datetime.day);
-    TS_HAL.lcd_printf("Time: %02d : %02d : %02d\n", datetime.hour, datetime.minute, datetime.second);
-  }
-
 }
 
 void UITask (void* parameter)
 {
+<<<<<<< HEAD
   UBaseType_t stackHighWaterMark;
 
   uint8_t lastStateBtnA = 0;
@@ -79,6 +68,17 @@ void UITask (void* parameter)
   /* loop forever */
   for (;;)
   {
+    if(!powerSaveTest)
+    {
+      TS_DateTime datetime;
+      TS_HAL.rtc_get(datetime);
+      
+      TS_HAL.lcd_cursor(0, 15);
+      // TODO: does not work with F()
+      TS_HAL.lcd_printf("Date: %04d-%02d-%02d\n",     datetime.year, datetime.month, datetime.day);
+      TS_HAL.lcd_printf("Time: %02d : %02d : %02d\n", datetime.hour, datetime.minute, datetime.second);
+    }
+    
     stackHighWaterMark = uxTaskGetStackHighWaterMark(NULL);
     Serial.print("UI: ");
     Serial.println(stackHighWaterMark);
@@ -111,28 +111,23 @@ void UITask (void* parameter)
     TS_HAL.sleep(TS_SleepMode::Task, 25);
   }
   /* delete a task when finish,
-    this will never happen because this is an infinite loop */
+  this will never happen because this is an infinite loop */
   vTaskDelete(NULL);
 }
 
 void traceTask(void* parameter)
 {
-  UBaseType_t stackHighWaterMark;
   uint16_t connectedCount;
   uint16_t sleepDuration;
-
-  for (;;)
+  for(;;)
   {
-    stackHighWaterMark = uxTaskGetStackHighWaterMark(NULL);
-    Serial.print("Trace: ");
-    Serial.println(stackHighWaterMark);
-
     // blink once a second
     TS_HAL.setLed(TS_Led::Red, true);
-    TS_HAL.sleep(TS_SleepMode::Task, 1000);
+    delay(1000);
     TS_HAL.setLed(TS_Led::Red, false);
-    TS_HAL.sleep(TS_SleepMode::Task, 1000);
-
+    delay(1000);
+    
+>>>>>>> master
     // don't turn off radio if we have connected clients
     connectedCount = OT_ProtocolV2.get_connected_count();
     sleepDuration = TS_HAL.random_get(1000, 3000);
