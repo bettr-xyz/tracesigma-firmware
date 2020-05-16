@@ -253,14 +253,14 @@ void _TS_HAL::power_setPowerMode(TS_PowerMode powerMode) {
     case TS_PowerMode::Normal:
 #ifdef HAL_M5STICK_C
       M5.Axp.SetLDO2(true);
-      M5.Axp.SetLDO2(true);
+      M5.Axp.SetLDO3(true);
 #endif
       break;
 
     case TS_PowerMode::Low:
 #ifdef HAL_M5STICK_C
       M5.Axp.SetLDO2(false);
-      M5.Axp.SetLDO2(false);
+      M5.Axp.SetLDO3(false);
 #endif
       break;
 

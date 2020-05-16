@@ -140,17 +140,17 @@ class _TS_HAL
     // Logs a line, similar to println
     template<typename T> inline void log(T val)
     {
-#ifdef HAL_SERIAL_LOG
+    #ifdef HAL_SERIAL_LOG
       Serial.println(val);
-#endif
+    #endif
     };
 
     // Logs without newline
     template<typename T> inline void logcat(T val)
     {
-#ifdef HAL_SERIAL_LOG
+    #ifdef HAL_SERIAL_LOG
       Serial.write(val);
-#endif
+    #endif
     };
 
 

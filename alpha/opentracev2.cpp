@@ -104,7 +104,7 @@ bool _OT_ProtocolV2::scan_and_connect(uint8_t seconds, int8_t rssiCutoff)
     //uint8_t txPower = device.getTXPower();
     int8_t rssi = (int8_t)device.getRSSI();
 
-    if (rssi < rssiCutoff) continue;
+    if(rssi < rssiCutoff) continue;
 
     Serial.print(deviceAddress.toString().c_str());
     Serial.print(" rssi: ");
@@ -125,7 +125,7 @@ bool _OT_ProtocolV2::connect_and_exchange(BLEAddress address, int8_t rssi)
   BLERemoteService* pRemoteService;
   BLERemoteCharacteristic* pRemoteCharacteristic;
 
-  if (!this->bleClient->isConnected())
+  if(!this->bleClient->isConnected()) 
   {
     Serial.println(F("Client connection failed"));
     return false;
@@ -134,7 +134,7 @@ bool _OT_ProtocolV2::connect_and_exchange(BLEAddress address, int8_t rssi)
   pRemoteService = this->bleClient->getService(this->serviceUUID);
   if (pRemoteService == NULL)
   {
-    if (this->bleClient->isConnected()) this->bleClient->disconnect();
+    if(this->bleClient->isConnected()) this->bleClient->disconnect();
     Serial.println(F("Failed to find our service UUID"));
     return false;
   }
@@ -142,14 +142,14 @@ bool _OT_ProtocolV2::connect_and_exchange(BLEAddress address, int8_t rssi)
   pRemoteCharacteristic = pRemoteService->getCharacteristic(this->characteristicUUID);
   if (pRemoteCharacteristic == NULL)
   {
-    if (this->bleClient->isConnected()) this->bleClient->disconnect();
+    if(this->bleClient->isConnected()) this->bleClient->disconnect();
     Serial.println(F("Failed to find our characteristic UUID"));
     return false;
   }
 
-  if (!pRemoteCharacteristic->canRead() || !pRemoteCharacteristic->canWrite())
+  if(!pRemoteCharacteristic->canRead() || !pRemoteCharacteristic->canWrite())
   {
-    if (this->bleClient->isConnected()) this->bleClient->disconnect();
+    if(this->bleClient->isConnected()) this->bleClient->disconnect();
     Serial.println(F("Unable to read or write"));
     return false;
   }
@@ -164,9 +164,9 @@ bool _OT_ProtocolV2::connect_and_exchange(BLEAddress address, int8_t rssi)
   buf = pRemoteCharacteristic->readValue();
 
   // no need for ble client after this point
-  if (this->bleClient->isConnected()) this->bleClient->disconnect();
-
-  if (!this->process_central_read_request(buf, connectionRecord))
+  if(this->bleClient->isConnected()) this->bleClient->disconnect();  
+  
+  if(!this->process_central_read_request(buf, connectionRecord))
   {
     Serial.println(F("Json parse error or read failed"));
     return false;
@@ -174,7 +174,7 @@ bool _OT_ProtocolV2::connect_and_exchange(BLEAddress address, int8_t rssi)
 
   Serial.print("BLE central Recv: ");
   Serial.println(buf.c_str());
-
+  
   // TODO: store data read into connectionRecord somewhere
 
   return true;
@@ -233,7 +233,7 @@ void _OT_ProtocolV2::onWrite(BLECharacteristic *pCharacteristic)
 
   OT_ConnectionRecord cr;
 
-  if (!this->process_peripheral_write_request(payload, cr))
+  if(!this->process_peripheral_write_request(payload, cr))
   {
     Serial.println("Parse error or data invalid");
   }
@@ -284,34 +284,34 @@ bool _OT_ProtocolV2::process_peripheral_write_request(std::string& payload, OT_C
 
   StaticJsonDocument<OT_CR_MAXLEN> root;
   DeserializationError error = deserializeJson(root, payload);
-
+  
   if (error)  // filter invalid json
   {
     Serial.println(error.c_str());
-    return false;
+    return false; 
   }
-
+  
   if (!root.containsKey("id") || !root.containsKey("mc") || !root.containsKey("o") || !root.containsKey("rs") || !root.containsKey("v")) return false; // missing at least 1 key
 
   uint8_t ver = root["v"];
-  if (ver != OT_PROTOVER) return false; // filter invalid version
+  if(ver != OT_PROTOVER) return false;  // filter invalid version
 
   connectionRecord.rssi = root["rs"];
 
   const char *raw = root["o"];
-  if (raw == NULL) return false;
+  if(raw == NULL) return false;
   connectionRecord.org = raw;
-  if (connectionRecord.org.length() > OT_CR_SHORT_MAX) return false;
+  if(connectionRecord.org.length() > OT_CR_SHORT_MAX) return false;
 
   raw = root["mc"];
-  if (raw == NULL) return false;
+  if(raw == NULL) return false;
   connectionRecord.deviceType = raw;
-  if (connectionRecord.deviceType.length() > OT_CR_SHORT_MAX) return false;
+  if(connectionRecord.deviceType.length() > OT_CR_SHORT_MAX) return false;
 
   raw = root["id"];
-  if (raw == NULL) return false;
+  if(raw == NULL) return false;
   connectionRecord.id = raw;
-  if (connectionRecord.deviceType.length() > OT_CR_ID_MAX) return false;
+  if(connectionRecord.deviceType.length() > OT_CR_ID_MAX) return false;
 
   return true;
 }
@@ -321,7 +321,7 @@ bool _OT_ProtocolV2::process_peripheral_write_request(std::string& payload, OT_C
 void _OT_ProtocolV2::prepare_central_write_request(std::string& buf, int8_t rssi)
 {
   char rssiBuf[5];
-
+  
   buf = "{\"id\":\"";
   // Take semaphore to read cached tempid
   xSemaphoreTake( characteristicCacheMutex, portMAX_DELAY );
@@ -348,32 +348,32 @@ bool _OT_ProtocolV2::process_central_read_request(std::string& payload, OT_Conne
   DeserializationError error = deserializeJson(root, payload);
 
   connectionRecord.rssi = 127;  // unused field, set to known value
-
+  
   if (error)  // filter invalid json
   {
     Serial.println(error.c_str());
-    return false;
+    return false; 
   }
-
+  
   if (!root.containsKey("id") || !root.containsKey("mp") || !root.containsKey("o") || !root.containsKey("v")) return false; // missing at least 1 key
 
   uint8_t ver = root["v"];
-  if (ver != OT_PROTOVER) return false; // filter invalid version
+  if(ver != OT_PROTOVER) return false;  // filter invalid version
 
   const char *raw = root["o"];
-  if (raw == NULL) return false;
+  if(raw == NULL) return false;
   connectionRecord.org = raw;
-  if (connectionRecord.org.length() > OT_CR_SHORT_MAX) return false;
+  if(connectionRecord.org.length() > OT_CR_SHORT_MAX) return false;
 
   raw = root["mp"];
-  if (raw == NULL) return false;
+  if(raw == NULL) return false;
   connectionRecord.deviceType = raw;
-  if (connectionRecord.deviceType.length() > OT_CR_SHORT_MAX) return false;
+  if(connectionRecord.deviceType.length() > OT_CR_SHORT_MAX) return false;
 
   raw = root["id"];
-  if (raw == NULL) return false;
+  if(raw == NULL) return false;
   connectionRecord.id = raw;
-  if (connectionRecord.deviceType.length() > OT_CR_ID_MAX) return false;
+  if(connectionRecord.deviceType.length() > OT_CR_ID_MAX) return false;
 
   return true;
 }
