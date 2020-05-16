@@ -47,17 +47,6 @@ int skips = 0;
 
 void loop() {
   TS_HAL.update();
-
-  if(!powerSaveTest)
-  {
-    TS_DateTime datetime;
-    TS_HAL.rtc_get(datetime);
-    
-    TS_HAL.lcd_cursor(0, 15);
-    // TODO: does not work with F()
-    TS_HAL.lcd_printf("Date: %04d-%02d-%02d\n",     datetime.year, datetime.month, datetime.day);
-    TS_HAL.lcd_printf("Time: %02d : %02d : %02d\n", datetime.hour, datetime.minute, datetime.second);
-  }
 }
 
 void UITask (void* parameter)
@@ -65,7 +54,16 @@ void UITask (void* parameter)
   /* loop forever */
   for(;;)
   {
-    
+    if(!powerSaveTest)
+    {
+      TS_DateTime datetime;
+      TS_HAL.rtc_get(datetime);
+      
+      TS_HAL.lcd_cursor(0, 15);
+      // TODO: does not work with F()
+      TS_HAL.lcd_printf("Date: %04d-%02d-%02d\n",     datetime.year, datetime.month, datetime.day);
+      TS_HAL.lcd_printf("Time: %02d : %02d : %02d\n", datetime.hour, datetime.minute, datetime.second);
+    }
   }
   /* delete a task when finish,
   this will never happen because this is an infinite loop */
