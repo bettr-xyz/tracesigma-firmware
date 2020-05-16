@@ -55,7 +55,6 @@ void loop() {
 
 void UITask (void* parameter)
 {
-<<<<<<< HEAD
   UBaseType_t stackHighWaterMark;
 
   uint8_t lastStateBtnA = 0;
@@ -127,7 +126,6 @@ void traceTask(void* parameter)
     TS_HAL.setLed(TS_Led::Red, false);
     delay(1000);
     
->>>>>>> master
     // don't turn off radio if we have connected clients
     connectedCount = OT_ProtocolV2.get_connected_count();
     sleepDuration = TS_HAL.random_get(1000, 3000);
