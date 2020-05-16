@@ -8,8 +8,6 @@
 
 bool powerSaveTest = false;
 
-int stackSize = 10000;
-
 void setup() {
   TS_HAL.begin();
   TS_HAL.ble_init();
@@ -29,17 +27,17 @@ void setup() {
   OT_ProtocolV2.begin();
 
   xTaskCreate(
-    blinkyTask, /* Task function. */
-    "Blinky", /* name of task. */
-    stackSize, /* Stack size of task */
+    UITask, /* Task function. */
+    "UI", /* name of task. */
+    1000, /* Stack size of task */
     NULL, /* parameter of the task */
-    1, /* priority of the task */
+    3, /* priority of the task */
     NULL); /* Task handle to keep track of created task */
 
   xTaskCreate(
     traceTask, /* Task function. */
     "Trace", /* name of task. */
-    stackSize, /* Stack size of task */
+    10000, /* Stack size of task */
     NULL, /* parameter of the task */
     2, /* priority of the task */
     NULL); /* Task handle to keep track of created task */
@@ -75,9 +73,10 @@ void UITask (void* parameter)
   vTaskDelete(NULL);
 }
 
-void blinkyTask(void* parameter)
+void traceTask(void* parameter)
 {
-  /* loop forever */
+  uint16_t connectedCount;
+  uint16_t sleepDuration;
   for(;;)
   {
     // blink once a second
@@ -85,18 +84,7 @@ void blinkyTask(void* parameter)
     delay(1000);
     TS_HAL.setLed(TS_Led::Red, false);
     delay(1000);
-  }
-  /* delete a task when finish,
-  this will never happen because this is an infinite loop */
-  vTaskDelete(NULL);
-}
-
-void traceTask(void* parameter)
-{
-  uint16_t connectedCount;
-  uint16_t sleepDuration;
-  for(;;)
-  {
+    
     // don't turn off radio if we have connected clients
     connectedCount = OT_ProtocolV2.get_connected_count();
     sleepDuration = TS_HAL.random_get(1000, 3000);
