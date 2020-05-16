@@ -92,6 +92,10 @@ void _TS_HAL::lcd_backlight(bool on)
 void _TS_HAL::lcd_sleep(bool enabled)
 {
   // does not exist on m5stick-c
+#ifdef HAL_M5STICK_C
+  M5.Axp.SetLDO2(enabled);
+  M5.Axp.SetLDO3(enabled);
+#endif
 }
 
 void _TS_HAL::lcd_cursor(uint16_t x, uint16_t y)
@@ -247,21 +251,17 @@ void _TS_HAL::reset()
   ESP.restart();
 }
 
-void _TS_HAL::power_setPowerMode(TS_PowerMode powerMode) {
+void _TS_HAL::power_set_mode(TS_PowerMode powerMode) {
   switch (powerMode)
   {
     case TS_PowerMode::Normal:
-#ifdef HAL_M5STICK_C
-      M5.Axp.SetLDO2(true);
-      M5.Axp.SetLDO3(true);
-#endif
+      // enable lcd
+      _TS_HAL::lcd_sleep(true);
       break;
 
     case TS_PowerMode::Low:
-#ifdef HAL_M5STICK_C
-      M5.Axp.SetLDO2(false);
-      M5.Axp.SetLDO3(false);
-#endif
+      // disable lcd
+      _TS_HAL::lcd_sleep(false);
       break;
 
   }

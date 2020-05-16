@@ -125,7 +125,7 @@ class _TS_HAL
     void sleep(TS_SleepMode, uint32_t);
     void power_off();
     void reset();
-    void power_setPowerMode(TS_PowerMode);
+    void power_set_mode(TS_PowerMode);
 
     //
     // I/O

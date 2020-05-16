@@ -8,7 +8,6 @@
 
 bool powerSaveTest = false;
 
-bool SavePower = false;
 int stackSize = 1000;
 unsigned long debounceDelay = 50; // the debounce time; increase if the output flickers
 
@@ -62,7 +61,8 @@ void UITask (void* parameter)
   unsigned long lastDebounceTime = 0;
   uint8_t reading;
   float timeSinceLastDebounce;
-  bool equal;
+  
+  bool SavePower = false;
 
   /* loop forever */
   for (;;)
@@ -97,9 +97,9 @@ void UITask (void* parameter)
         if (currStateBtnA == 1) {
           SavePower = !SavePower;
           if (SavePower) {
-            TS_HAL.power_setPowerMode(TS_PowerMode::Low);
+            TS_HAL.power_set_mode(TS_PowerMode::Low);
           } else {
-            TS_HAL.power_setPowerMode(TS_PowerMode::Normal);
+            TS_HAL.power_set_mode(TS_PowerMode::Normal);
           }
         }
       }
