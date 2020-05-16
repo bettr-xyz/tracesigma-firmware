@@ -25,6 +25,8 @@ void setup() {
   }
 
   OT_ProtocolV2.begin();
+
+  TS_HAL.power_set_mic(false); // disable power to microphone
   
 }
 
@@ -85,18 +87,3 @@ void loop() {
 
   // TODO: call OT update_characteristic_cache at least once every 15 mins
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

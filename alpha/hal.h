@@ -119,6 +119,7 @@ class _TS_HAL
     void sleep(TS_SleepMode, uint32_t);
     void power_off();
     void reset();
+    void power_set_mic(bool);
 
     
     //
