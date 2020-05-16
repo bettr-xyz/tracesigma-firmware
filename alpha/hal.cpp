@@ -271,7 +271,7 @@ void _TS_HAL::power_set_mode(TS_PowerMode powerMode) {
 // I/O
 //
 
-uint8_t _TS_HAL::IO_btnA_read()
+uint8_t _TS_HAL::IO_btn_A_read()
 {
 #ifdef HAL_M5STICK_C
   return M5.BtnA.read();

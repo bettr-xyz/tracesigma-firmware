@@ -82,7 +82,7 @@ void UITask (void* parameter)
     Serial.print("UI: ");
     Serial.println(stackHighWaterMark);
 
-    reading = TS_HAL.IO_btnA_read();
+    reading = TS_HAL.IO_btn_A_read();
 
     if (reading != lastStateBtnA) {
       lastDebounceTime = millis();
