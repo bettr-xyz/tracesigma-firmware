@@ -16,6 +16,9 @@ void setup() {
   // disable power to microphone
   TS_HAL.power_set_mic(false);
 
+  // set internal charging current to recommended 100mA 
+  TS_HAL.power_set_charging_current(CURRENT_100MA);
+
   OT_ProtocolV2.begin();
 
   // This starts a new task

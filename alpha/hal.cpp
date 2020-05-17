@@ -304,6 +304,14 @@ void _TS_HAL::power_set_mic(bool enabled)
   EXIT_CRITICAL;
 }
 
+void _TS_HAL::power_set_charging_current(uint8_t current) {
+  ENTER_CRITICAL;
+#ifdef HAL_M5STICK_C
+  M5.Axp.SetChargeCurrent(current);
+#endif
+  EXIT_CRITICAL;
+}
+
 //
 // Common logging functions
 //
