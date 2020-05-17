@@ -22,6 +22,10 @@
 
 #define DEVICE_NAME "TraceStick V0.1"
 
+#ifdef HAL_M5STICK_C
+  #include "AXP192.h"
+#endif
+
 struct TS_DateTime
 {
   uint8_t hour, minute, second;

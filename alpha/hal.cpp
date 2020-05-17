@@ -315,7 +315,7 @@ void _TS_HAL::power_set_charging_current(uint8_t current) {
 void _TS_HAL::power_set_charging_voltage(uint8_t voltage) {
   ENTER_CRITICAL;
 #ifdef HAL_M5STICK_C
-  M5.Axp.SetChargeVoltage(current);
+  M5.Axp.SetChargeVoltage(voltage);
 #endif
   EXIT_CRITICAL;
 }
