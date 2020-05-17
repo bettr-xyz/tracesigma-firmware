@@ -102,7 +102,8 @@ class _TS_HAL
     //
     // Misc IO
     //
-    void setLed(TS_Led, bool);
+    void led_set(TS_Led, bool);
+    bool btn_a_get();
 
 
     //

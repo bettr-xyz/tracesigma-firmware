@@ -11,6 +11,9 @@
 
 #endif
 
+#define ENTER_CRITICAL  xSemaphoreTake(halMutex, portMAX_DELAY)
+#define EXIT_CRITICAL   xSemaphoreGive(halMutex)
+static SemaphoreHandle_t halMutex;
 
 // Your one and only
 _TS_HAL TS_HAL;
@@ -20,28 +23,32 @@ void _TS_HAL::begin()
 {
   log_init();
   this->bleInitialized = false;
+  halMutex = xSemaphoreCreateMutex();
 
   // init ble before rng
   BLEDevice::init(DEVICE_NAME);
   this->random_seed();
 
 #ifdef HAL_M5STICK_C
+  ENTER_CRITICAL;
   M5.begin();
-
   M5.Lcd.setRotation(3);
   M5.Lcd.fillScreen(BLACK);
   M5.Lcd.setTextSize(1);
 
   // Set LED pins
   pinMode(10, OUTPUT);
+  EXIT_CRITICAL;
 #endif
 }
 
 void _TS_HAL::update()
 {
+  ENTER_CRITICAL;
 #ifdef HAL_M5STICK_C
   M5.update();
 #endif
+  EXIT_CRITICAL;
 }
 
 
@@ -54,14 +61,19 @@ void _TS_HAL::update()
 // - ESP32 has a true rng if BT/Wifi is enabled, p-rng otherwise
 void _TS_HAL::random_seed()
 {
+  ENTER_CRITICAL;
   randomSeed(esp_random());
+  EXIT_CRITICAL;
 }
 
 // a random number between min and max-1 (long)
 // - TODO: we theoretically can just use esp_random directly
 uint32_t _TS_HAL::random_get(uint32_t min, uint32_t max)
 {
-  return random(min, max);
+  ENTER_CRITICAL;
+  uint32_t val = random(min, max);
+  EXIT_CRITICAL;
+  return val;
 }
 
 
@@ -75,46 +87,61 @@ void _TS_HAL::lcd_brightness(uint8_t level)
   if (level > 100) level = 100;
   else if (level < 0) level = 0;
 
+  ENTER_CRITICAL;
 #ifdef HAL_M5STICK_C
   // m5stickc valid levels are 7-15 for some reason
   // level / 12 -> (0-8), +7 -> 7-15
   M5.Axp.ScreenBreath(7 + (level / 12));
 #endif
+  EXIT_CRITICAL;
 }
 
 void _TS_HAL::lcd_backlight(bool on)
 {
+  ENTER_CRITICAL;
 #ifdef HAL_M5STICK_C
   M5.Axp.SetLDO2(on);
 #endif
+  EXIT_CRITICAL;
 }
 
 void _TS_HAL::lcd_sleep(bool enabled)
 {
-  // does not exist on m5stick-c
+  ENTER_CRITICAL;
+#ifdef HAL_M5STICK_C
+  M5.Axp.SetLDO2(!enabled);
+  M5.Axp.SetLDO3(!enabled);
+#endif
+  EXIT_CRITICAL;
 }
 
 void _TS_HAL::lcd_cursor(uint16_t x, uint16_t y)
 {
+  ENTER_CRITICAL;
 #ifdef HAL_M5STICK_C
   // x, y, font
   // We only use font 2 for now
   M5.Lcd.setCursor(x, y, 2);
 #endif
+  EXIT_CRITICAL;
 }
 
 void _TS_HAL::lcd_printf(const char* t)
 {
+  ENTER_CRITICAL;
 #ifdef HAL_M5STICK_C
   M5.Lcd.printf(t);
 #endif
+  EXIT_CRITICAL;
 }
 
 void _TS_HAL::lcd_printf(const char* t, int a, int b, int c)
 {
+  ENTER_CRITICAL;
 #ifdef HAL_M5STICK_C
   M5.Lcd.printf(t, a, b, c);
 #endif
+  EXIT_CRITICAL;
 }
 
 
@@ -125,6 +152,7 @@ void _TS_HAL::lcd_printf(const char* t, int a, int b, int c)
 
 void _TS_HAL::rtc_get(TS_DateTime &dt)
 {
+  ENTER_CRITICAL;
 #ifdef HAL_M5STICK_C
   RTC_TimeTypeDef RTC_TimeStruct;
   RTC_DateTypeDef RTC_DateStruct;
@@ -137,10 +165,12 @@ void _TS_HAL::rtc_get(TS_DateTime &dt)
   dt.month  = RTC_DateStruct.Month;
   dt.year   = RTC_DateStruct.Year;
 #endif
+  EXIT_CRITICAL;
 }
 
 void _TS_HAL::rtc_set(TS_DateTime &dt)
 {
+  ENTER_CRITICAL;
 #ifdef HAL_M5STICK_C
   RTC_TimeTypeDef TimeStruct;
   RTC_DateTypeDef DateStruct;
@@ -154,6 +184,7 @@ void _TS_HAL::rtc_set(TS_DateTime &dt)
   M5.Rtc.SetTime(&TimeStruct);
   M5.Rtc.SetData(&DateStruct); // NOTE: apparently their lib has a typo
 #endif
+  EXIT_CRITICAL;
 }
 
 
@@ -162,7 +193,7 @@ void _TS_HAL::rtc_set(TS_DateTime &dt)
 // Misc IO
 //
 
-void _TS_HAL::setLed(TS_Led led, bool enable)
+void _TS_HAL::led_set(TS_Led led, bool enable)
 {
 #ifdef HAL_M5STICK_C
   switch (led) {
@@ -170,6 +201,13 @@ void _TS_HAL::setLed(TS_Led led, bool enable)
       digitalWrite(10, enable ? 0 : 1); // logic is reversed probably due to pulldown
       break;
   }
+#endif
+}
+
+bool _TS_HAL::btn_a_get()
+{
+#ifdef HAL_M5STICK_C
+  return M5.BtnA.read() == 1;
 #endif
 }
 
@@ -221,9 +259,12 @@ void _TS_HAL::sleep(TS_SleepMode sleepMode, uint32_t ms)
       break;
 
     case TS_SleepMode::Deep:
+      ENTER_CRITICAL;
 #ifdef HAL_M5STICK_C
       M5.Axp.DeepSleep(SLEEP_MSEC(ms));
+      // Execution terminates here
 #endif
+      EXIT_CRITICAL;
       break;
 
     case TS_SleepMode::Task:
@@ -237,22 +278,30 @@ void _TS_HAL::sleep(TS_SleepMode sleepMode, uint32_t ms)
 
 void _TS_HAL::power_off()
 {
+  ENTER_CRITICAL;
 #ifdef HAL_M5STICK_C
   M5.Axp.PowerOff();
 #endif
+  // Execution terminates here
+  EXIT_CRITICAL;
 }
 
 void _TS_HAL::reset()
 {
+  ENTER_CRITICAL;
   ESP.restart();
+  // Execution terminates here
+  EXIT_CRITICAL;
 }
 
 void _TS_HAL::power_set_mic(bool enabled)
 {
+  ENTER_CRITICAL;
 #ifdef HAL_M5STICK_C
   // GPIO0 low noise LDO
   M5.Axp.SetGPIO0(enabled);
 #endif
+  EXIT_CRITICAL;
 }
 
 //

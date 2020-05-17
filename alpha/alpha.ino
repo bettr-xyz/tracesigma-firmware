@@ -1,5 +1,6 @@
 #include "cleanbox.h"
 #include "hal.h"
+#include "ui.h"
 #include "opentracev2.h"
 
 // Notes:
@@ -14,20 +15,11 @@ void setup() {
 
   // disable power to microphone
   TS_HAL.power_set_mic(false);
-  
-  // Reduce screen brightness to minimum visibility to reduce power consumption
-  TS_HAL.lcd_brightness(12);
-
-  TS_HAL.lcd_cursor(40, 0);
-  TS_HAL.lcd_printf("ALPHA TEST");
-
-  if(powerSaveTest)
-  {
-    TS_HAL.lcd_backlight(false);
-    TS_HAL.lcd_sleep(true);
-  }
 
   OT_ProtocolV2.begin();
+
+  // This starts a new task
+  TS_UI.begin();
 }
 
 int skips = 0;
@@ -35,21 +27,10 @@ int skips = 0;
 void loop() {
   TS_HAL.update();
 
-  if(!powerSaveTest)
-  {
-    TS_DateTime datetime;
-    TS_HAL.rtc_get(datetime);
-    
-    TS_HAL.lcd_cursor(0, 15);
-    // TODO: does not work with F()
-    TS_HAL.lcd_printf("Date: %04d-%02d-%02d\n",     datetime.year, datetime.month, datetime.day);
-    TS_HAL.lcd_printf("Time: %02d : %02d : %02d\n", datetime.hour, datetime.minute, datetime.second);
-  }
-
   // blink once a second
-  TS_HAL.setLed(TS_Led::Red, true);
+  TS_HAL.led_set(TS_Led::Red, true);
   TS_HAL.sleep(TS_SleepMode::Default, 1);
-  TS_HAL.setLed(TS_Led::Red, false);
+  TS_HAL.led_set(TS_Led::Red, false);
 
   // don't turn off radio if we have connected clients
   uint16_t connectedCount = OT_ProtocolV2.get_connected_count();
@@ -60,7 +41,8 @@ void loop() {
   if(connectedCount > 0) {
     TS_HAL.sleep(TS_SleepMode::Task, sleepDuration);
   } else {
-    TS_HAL.sleep(TS_SleepMode::Light, sleepDuration);
+    //TS_HAL.sleep(TS_SleepMode::Light, sleepDuration);
+    TS_HAL.sleep(TS_SleepMode::Task, sleepDuration);
   }
 
   if(skips >= 5) { // vary the interval between scans here
