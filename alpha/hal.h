@@ -126,12 +126,15 @@ class _TS_HAL
     void power_off();
     void reset();
     void power_set_mode(TS_PowerMode);
+    void power_set_mic(bool);
 
+  
     //
     // I/O
     //
     uint8_t IO_btn_A_read();
-
+   
+  
     //
     // Common logging functions
     //

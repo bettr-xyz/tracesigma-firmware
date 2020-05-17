@@ -267,6 +267,14 @@ void _TS_HAL::power_set_mode(TS_PowerMode powerMode) {
   }
 }
 
+void _TS_HAL::power_set_mic(bool enabled)
+{
+#ifdef HAL_M5STICK_C
+  // GPIO0 low noise LDO
+  M5.Axp.SetGPIO0(enabled);
+#endif
+}
+
 //
 // I/O
 //
