@@ -17,9 +17,14 @@ void setup() {
   TS_HAL.power_set_mic(false);
 
   // set internal charging current to recommended 100mA 
+  // default is 100mA
   TS_HAL.power_set_charging_current(CURRENT_100MA);
 
+  // default is 4200mV
   TS_HAL.power_set_charging_voltage(VOLTAGE_4200MV);
+
+  // default sample rate is 200Hz
+  TS_HAL.power_set_adc_rate(ADC_RATE_025HZ);
 
   OT_ProtocolV2.begin();
 

@@ -320,6 +320,14 @@ void _TS_HAL::power_set_charging_voltage(uint8_t voltage) {
   EXIT_CRITICAL;
 }
 
+void _TS_HAL::power_set_adc_rate(uint8_t rate) {
+  ENTER_CRITICAL;
+#ifdef HAL_M5STICK_C
+  M5.Axp.SetAdcRate(rate);
+#endif
+  EXIT_CRITICAL;
+}
+
 //
 // Common logging functions
 //
