@@ -1,0 +1,3 @@
+[submodule "M5StickC"]
+	path = M5StickC
+	url = git://github.com/bettr-xyz/M5StickC.git
