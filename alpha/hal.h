@@ -122,6 +122,7 @@ class _TS_HAL
     void reset();
     void power_set_mic(bool);
     void power_set_charging_current(uint8_t current);
+    void power_set_charging_voltage(uint8_t voltage);
 
     
     //

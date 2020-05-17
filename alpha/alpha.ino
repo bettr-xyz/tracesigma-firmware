@@ -19,6 +19,8 @@ void setup() {
   // set internal charging current to recommended 100mA 
   TS_HAL.power_set_charging_current(CURRENT_100MA);
 
+  TS_HAL.power_set_charging_voltage(VOLTAGE_4200MV);
+
   OT_ProtocolV2.begin();
 
   // This starts a new task
