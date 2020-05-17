@@ -61,6 +61,9 @@ void _TS_UI::task(void* parameter)
       // TODO: does not work with F()
       TS_HAL.lcd_printf("Date: %04d-%02d-%02d\n",     datetime.year, datetime.month, datetime.day);
       TS_HAL.lcd_printf("Time: %02d : %02d : %02d\n", datetime.hour, datetime.minute, datetime.second);
+
+      // CALEB TEST CODE HERE
+      TS_HAL.lcd_qrcode("test");
     }
 
     // stackHighWaterMark = uxTaskGetStackHighWaterMark(NULL);

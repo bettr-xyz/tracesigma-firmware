@@ -144,6 +144,57 @@ void _TS_HAL::lcd_printf(const char* t, int a, int b, int c)
   EXIT_CRITICAL;
 }
 
+void _TS_HAL::lcd_qrcode(const char *string, uint16_t x, uint16_t y, uint8_t width, uint8_t version)
+{
+  ENTER_CRITICAL;
+#ifdef HAL_M5STICK_C
+  M5.Lcd.qrcode(string, x, y, width, version);
+#endif
+  EXIT_CRITICAL;
+}
+
+inline void _TS_HAL::lcd_qrcode(const String &string, uint16_t x, uint16_t y, uint8_t width, uint8_t version)
+{
+  lcd_qrcode(string.c_str(), x, y, width, version);
+}
+
+void _TS_HAL::lcd_drawbitmap(int16_t x0, int16_t y0, int16_t w, int16_t h, const uint16_t *data)
+{
+  ENTER_CRITICAL;
+#ifdef HAL_M5STICK_C
+  M5.Lcd.drawBitmap(x0, y0, w, h, data);
+#endif
+  EXIT_CRITICAL;
+}
+
+void _TS_HAL::lcd_drawbitmap(int16_t x0, int16_t y0, int16_t w, int16_t h, const uint8_t *data)
+{
+  ENTER_CRITICAL;
+#ifdef HAL_M5STICK_C
+  M5.Lcd.drawBitmap(x0, y0, w, h, data);
+#endif
+  EXIT_CRITICAL;
+}
+
+inline void _TS_HAL::lcd_drawbitmap(int16_t x0, int16_t y0, int16_t w, int16_t h, uint16_t *data)
+{
+  lcd_drawbitmap(x0, y0, w, h, (const uint16_t *)data);
+}
+
+inline void _TS_HAL::lcd_drawbitmap(int16_t x0, int16_t y0, int16_t w, int16_t h, uint8_t *data)
+{
+  lcd_drawbitmap(x0, y0, w, h, (const uint8_t *)data);
+}
+
+void _TS_HAL::lcd_drawbitmap(int16_t x0, int16_t y0, int16_t w, int16_t h, const uint16_t *data, uint16_t transparent)
+{
+  ENTER_CRITICAL;
+#ifdef HAL_M5STICK_C
+  M5.Lcd.drawBitmap(x0, y0, w, h, data, transparent);
+#endif
+  EXIT_CRITICAL;
+}
+
 
 
 //
