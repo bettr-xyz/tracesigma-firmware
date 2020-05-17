@@ -11,6 +11,9 @@ bool powerSaveTest = false;
 void setup() {
   TS_HAL.begin();
   TS_HAL.ble_init();
+
+  // disable power to microphone
+  TS_HAL.power_set_mic(false);
   
   // Reduce screen brightness to minimum visibility to reduce power consumption
   TS_HAL.lcd_brightness(12);
@@ -25,9 +28,6 @@ void setup() {
   }
 
   OT_ProtocolV2.begin();
-
-  TS_HAL.power_set_mic(false); // disable power to microphone
-  
 }
 
 int skips = 0;

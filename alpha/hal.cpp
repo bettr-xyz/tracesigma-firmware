@@ -247,20 +247,12 @@ void _TS_HAL::reset()
   ESP.restart();
 }
 
-void _TS_HAL::power_set_mic(bool enabled) {
-  if (enabled) 
-  {
+void _TS_HAL::power_set_mic(bool enabled)
+{
 #ifdef HAL_M5STICK_C
   // GPIO0 low noise LDO
-  M5.Axp.SetGPIO0(true);
+  M5.Axp.SetGPIO0(enabled);
 #endif
-  } else 
-  {
-#ifdef HAL_M5STICK_C
-  // GPIO0 floating
-  M5.Axp.SetGPIO0(false);
-#endif
-  }
 }
 
 //
