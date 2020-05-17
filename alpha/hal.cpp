@@ -247,6 +247,21 @@ void _TS_HAL::reset()
   ESP.restart();
 }
 
+void _TS_HAL::power_set_mic(bool enabled) {
+  if (enabled) 
+  {
+#ifdef HAL_M5STICK_C
+  // GPIO0 low noise LDO
+  M5.Axp.SetGPIO0(true);
+#endif
+  } else 
+  {
+#ifdef HAL_M5STICK_C
+  // GPIO0 floating
+  M5.Axp.SetGPIO0(false);
+#endif
+  }
+}
 
 //
 // Common logging functions
@@ -272,4 +287,3 @@ void _TS_HAL::fail_reboot(const char *msg)
   delay(3000);
   reset();
 }
-
