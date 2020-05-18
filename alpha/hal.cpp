@@ -311,10 +311,10 @@ uint8_t _TS_HAL::power_get_batt_level(){
   long level;
   ENTER_CRITICAL;
 #ifdef HAL_M5STICK_C
-  level = constrain(map(M5.Axp.GetVbatData() * 1.1, 3100, 4000, 0, 100), 0, 100);
+  level = map(M5.Axp.GetVbatData() * 1.1, 3100, 4000, 0, 100);
 #endif
   EXIT_CRITICAL;
-  return level;
+  return constrain(level, 0, 100);
 }
 
 //
