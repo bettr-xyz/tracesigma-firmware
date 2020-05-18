@@ -22,10 +22,6 @@
 
 #define DEVICE_NAME "TraceStick V0.1"
 
-#ifdef HAL_M5STICK_C
-  #include "AXP192.h"
-#endif
-
 struct TS_DateTime
 {
   uint8_t hour, minute, second;
@@ -125,9 +121,6 @@ class _TS_HAL
     void power_off();
     void reset();
     void power_set_mic(bool);
-    void power_set_charging_current(uint8_t current);
-    void power_set_charging_voltage(uint8_t voltage);
-    void power_set_adc_rate(uint8_t rate);
 
     
     //
