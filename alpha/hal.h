@@ -102,7 +102,8 @@ class _TS_HAL
     //
     // Misc IO
     //
-    void setLed(TS_Led, bool);
+    void led_set(TS_Led, bool);
+    bool btn_a_get();
 
 
     //
@@ -119,6 +120,7 @@ class _TS_HAL
     void sleep(TS_SleepMode, uint32_t);
     void power_off();
     void reset();
+    void power_set_mic(bool);
 
     
     //
