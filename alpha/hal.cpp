@@ -11,6 +11,7 @@
 
 #endif
 
+#include "serial_cmd.h"
 
 // Your one and only
 _TS_HAL TS_HAL;
@@ -26,7 +27,7 @@ void _TS_HAL::begin()
   this->random_seed();
 
 #ifdef HAL_M5STICK_C
-  M5.begin();
+  M5.begin(true, true, false);
 
   M5.Lcd.setRotation(3);
   M5.Lcd.fillScreen(BLACK);
@@ -255,7 +256,7 @@ void _TS_HAL::reset()
 void _TS_HAL::log_init()
 {
 #ifdef HAL_SERIAL_LOG
-  Serial.begin(115200);
+  initialize_uart();
 #endif
 }
 
@@ -272,4 +273,3 @@ void _TS_HAL::fail_reboot(const char *msg)
   delay(3000);
   reset();
 }
-

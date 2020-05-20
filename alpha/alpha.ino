@@ -1,6 +1,8 @@
 #include "cleanbox.h"
 #include "hal.h"
 #include "opentracev2.h"
+#include "serial_cmd.h"
+#include "driver/uart.h"
 
 // Notes:
 // - look at mods/boards.diff.txt -- set CPU to 80mhz instead of 240mhz
@@ -53,8 +55,8 @@ void loop() {
   uint16_t connectedCount = OT_ProtocolV2.get_connected_count();
   uint16_t sleepDuration = TS_HAL.random_get(1000, 3000);
 
-  Serial.print(F("Devices connected: "));
-  Serial.println(connectedCount);
+//  Serial.print(F("Devices connected: "));
+//  Serial.println(connectedCount);
   if(connectedCount > 0) {
     TS_HAL.sleep(TS_SleepMode::Task, sleepDuration);
   } else {
@@ -84,19 +86,11 @@ void loop() {
   TS_HAL.sleep(TS_SleepMode::Task, 100);
 
   // TODO: call OT update_characteristic_cache at least once every 15 mins
+
+  uint8_t data;
+  int len = uart_read_bytes(UART_NUM_0, &data, 1, 100);
+  if (len > 0)
+  {
+    serial_cmd_loop();
+  }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
