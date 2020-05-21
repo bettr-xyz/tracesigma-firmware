@@ -7,6 +7,9 @@
 #include <M5StickC.h>
 #include "AXP192.h"
 
+#include <WiFi.h>
+#define WIFI_SSID "Test"       // Enter your SSID here
+#define WIFI_PASS "password"    // Enter your WiFi password here
 #elif HAL_M5STACK
 #include <M5Stack.h>
 
@@ -324,7 +327,41 @@ void _TS_HAL::log_init()
 #endif
 }
 
+//
+// WIFI setup
+// 
+void _TS_HAL::wifi_init()
+{
+	WiFi.mode(WIFI_STA);
+	WiFi.disconnect();
+	int n = 0;
+	n = WiFi.scanNetworks();
+	if (n > 3)
+	{
+		n = 3;
+	}
+	for (int i = 0; i < n; ++i)
+	{
+		//prints top 3 nearest WIFI SSIDS
+		M5.Lcd.println(WiFi.SSID(i));
+		delay(1000);
+	}
 
+	if (n == 0)
+	{
+		M5.Lcd.println("no wifi found \n");
+	}
+	else
+	{
+		//Connect to, prints name of connected WIFI. 
+		WiFi.begin(WIFI_SSID, WIFI_PASS);
+		// wait 10 seconds for connection:
+		delay(5000);
+		M5.Lcd.println("Success,connected to");
+		M5.Lcd.println(WiFi.SSID());
+		IPAddress ip = WiFi.localIP();
+	}
+}
 
 //
 // Debug

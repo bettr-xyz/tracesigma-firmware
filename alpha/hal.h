@@ -144,7 +144,10 @@ class _TS_HAL
     #endif
     };
 
-
+	//
+	// WIFI 
+	//
+	void wifi_init();
 
     //
     // Debug
