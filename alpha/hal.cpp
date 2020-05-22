@@ -40,6 +40,7 @@ void _TS_HAL::begin()
   M5.Axp.SetChargeCurrent(CURRENT_100MA);  // Default is 100mA
   M5.Axp.SetChargeVoltage(VOLTAGE_4150MV); // Default is 4200mV
   M5.Axp.SetAdcRate(ADC_RATE_025HZ);       // Default sample rate is 200Hz
+  M5.Axp.SetVOff(VOLTAGE_OFF_3200MV);      // Default is 3000mV
   
   M5.Lcd.setRotation(3);
   M5.Lcd.fillScreen(BLACK);
