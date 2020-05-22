@@ -313,6 +313,16 @@ void _TS_HAL::power_set_mic(bool enabled)
   EXIT_CRITICAL;
 }
 
+void _TS_HAL::power_is_charging()
+{
+  ENTER_CRITICAL;
+#ifdef HAL_M5STICK_C
+  uint8_t info = M5.Axp.GetBatteryChargingStatus();
+  return info & (1 << 6);
+#endif
+  EXIT_CRITICAL;
+}
+
 //
 // Common logging functions
 //
