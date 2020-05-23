@@ -104,11 +104,11 @@ bool _OT_ProtocolV2::scan_and_connect(uint8_t seconds, int8_t rssiCutoff)
     //uint8_t txPower = device.getTXPower();
     int8_t rssi = (int8_t)device.getRSSI();
 
-    //if(rssi < rssiCutoff) continue;
-
     Serial.print(deviceAddress.toString().c_str());
     Serial.print(" rssi: ");
     Serial.println(rssi);
+
+    if(rssi < rssiCutoff) continue;
 
     // We do not need a map of last-seen as this function should have long intervals between calls
     // Connect to each one and read + write iff parameters are correct
@@ -126,10 +126,7 @@ bool _OT_ProtocolV2::scan_and_connect(uint8_t seconds, int8_t rssiCutoff)
     // delete this->bleClient;
   }
 
-  if(exchangeSuccess > this->lastExchangeCount)
-  {
-    this->lastExchangeCount = exchangeSuccess;
-  }
+  this->lastExchangeCount = exchangeSuccess;
 }
 
 bool _OT_ProtocolV2::connect_and_exchange(BLEAdvertisedDevice device, BLEAddress address, int8_t rssi)

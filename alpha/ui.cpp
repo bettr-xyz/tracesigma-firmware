@@ -58,10 +58,18 @@ void _TS_UI::task(void* parameter)
       TS_DateTime datetime;
       TS_HAL.rtc_get(datetime);
       
-      TS_HAL.lcd_cursor(0, 16);
+      TS_HAL.lcd_cursor(20, 20);
       // TS_HAL.lcd_printf("Date: %04d-%02d-%02d\n",     datetime.year, datetime.month, datetime.day);
       // TS_HAL.lcd_printf("Time: %02d : %02d : %02d\n", datetime.hour, datetime.minute, datetime.second);
-      TS_HAL.lcd_printf( "Peers : %d   \n", OT_ProtocolV2.get_last_exchange_count() );
+
+      if(OT_ProtocolV2.get_last_exchange_count() > 0)
+      {
+        TS_HAL.lcd_printf( "ENTRY ALLOWED   1" );
+      }
+      else
+      {
+        TS_HAL.lcd_printf( "ENTRY DENIED   " );
+      }
     }
 
     // stackHighWaterMark = uxTaskGetStackHighWaterMark(NULL);
