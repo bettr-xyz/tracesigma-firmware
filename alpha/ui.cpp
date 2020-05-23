@@ -7,7 +7,7 @@
 
 #define LONG_PRESS_DELAY 1000
 #define LONG_PRESS_CLICK_INTERVAL 500
-#define MIN_SLEEP_DURATION 2000
+#define MIN_SLEEP_DURATION 1000
 
 _TS_UI TS_UI;
 
@@ -31,19 +31,19 @@ void _TS_UI::begin() {
     1);                 // core
 }
 
-bool _TS_UI::read_button(bool reading, bool* down, unsigned long* timeout) {
+bool _TS_UI::read_button(bool reading, button& btn) {
   unsigned long now = millis();
-  if (*down) {
-    if (reading && now > *timeout) {
-      *timeout += LONG_PRESS_CLICK_INTERVAL;
+  if (btn.down) {
+    if (reading && now > btn.nextClick) {
+      btn.nextClick += LONG_PRESS_CLICK_INTERVAL;
       return 1;
     } else if (!reading) {
-      *down = 0;
+      btn.down = 0;
     }
   } else {
     if (reading) {
-      *timeout = now + LONG_PRESS_DELAY;
-      *down = 1;
+      btn.nextClick = now + LONG_PRESS_DELAY;
+      btn.down = 1;
       return 1;
     }
   }
@@ -54,42 +54,67 @@ void _TS_UI::task(void* parameter) {
   UBaseType_t stackHighWaterMark;
   unsigned long savePowerStart = 0;
 
-  bool btnADown = 0;
-  unsigned long btnALongPressAt = 0;
+  button btnA;
   bool clickA = 0;
-  int clickCountA = 0;
 
-  bool btnBDown = 0;
-  unsigned long btnBLongPressAt = 0;
+  button btnB;
   bool clickB = 0;
-  int clickCountB = 0;
+
+  int cursor = 0;
+  int selected = -1;
+
+  char options[][21] = {
+    " Brightness |---- ",
+    " Placeholder ",
+    " Sleep",
+  };
+
+  int brightness = 24;
 
   // Reduce screen brightness to minimum visibility to reduce power consumption
   TS_HAL.lcd_sleep(false);
-  TS_HAL.lcd_brightness(12);
+  TS_HAL.lcd_brightness(brightness);
 
   TS_HAL.lcd_cursor(40, 0);
   TS_HAL.lcd_printf("ALPHA TEST");
 
   while(true) {
-    clickA = this->read_button(TS_HAL.btn_a_get() == TS_ButtonState::Short, &btnADown, &btnALongPressAt);
-    if (!btnADown) {
-      clickCountA = 0;
+    clickA = this->read_button(TS_HAL.btn_a_get() == TS_ButtonState::Short, btnA);
+    clickB = this->read_button(TS_HAL.btn_b_get() == TS_ButtonState::Short, btnB);
+
+    if (clickA) {
+      if (selected == cursor) {
+        selected = -1;
+      } else {
+        selected = cursor;
+      }
     }
-    clickB = this->read_button(TS_HAL.btn_b_get() == TS_ButtonState::Short, &btnBDown, &btnBLongPressAt);
-    if (!btnBDown) {
-      clickCountB = 0;
+    if (selected == 0) {
+      if (clickB) {
+        options[0][brightness / 20 + 11] = '-';
+        brightness %= 100;
+        brightness += 20;
+        options[0][brightness / 20 + 11] = '|';
+        TS_HAL.lcd_brightness(brightness);
+      }
+    } else {
+      if (clickB) {
+        ++cursor %= 3;
+        selected = -1;
+      }
     }
 
-    if (clickA || clickB) {
+    bool hasUpdate = clickA || clickB;
+
+    if (hasUpdate) {
       if (millis() - savePowerStart < MIN_SLEEP_DURATION) {
         continue;
       }
       if (savePowerStart) {
         savePowerStart = 0;
-        clickCountA = 0;
+        selected = -1;
         TS_HAL.lcd_sleep(false);
-        TS_HAL.lcd_brightness(12);
+        TS_HAL.lcd_brightness(brightness);
       }
 
       TS_DateTime datetime;
@@ -97,9 +122,9 @@ void _TS_UI::task(void* parameter) {
 
       TS_HAL.lcd_cursor(0, 15);
       // TODO: Does not work with F()
-      TS_HAL.lcd_printf("Date: %04d-%02d-%02d\n", datetime.year, datetime.month, datetime.day);
-      TS_HAL.lcd_printf("Time: %02d : %02d : %02d\n", datetime.hour, datetime.minute, datetime.second);
 
+      TS_HAL.lcd_printf("%04d-%02d-%02d ", datetime.year, datetime.month, datetime.day);
+      TS_HAL.lcd_printf("%02d:%02d:%02d\n", datetime.hour, datetime.minute, datetime.second);
       TS_HAL.lcd_printf("Battery: %d%%  ", TS_HAL.power_get_batt_level(), NULL, NULL);
       if (TS_HAL.power_is_charging()) {
         TS_HAL.lcd_printf("Status: Charging    ");
@@ -107,18 +132,22 @@ void _TS_UI::task(void* parameter) {
         TS_HAL.lcd_printf("Status: Not Charging");
       }
 
-      clickCountA += clickA;
-      clickCountB += clickB;
-
-      TS_HAL.lcd_printf("Button A pressed: %d   \n", clickCountA);
-      TS_HAL.lcd_printf("Button B pressed: %d   \n", clickCountB);
+      for (int i = 0; i < 3; i++) {
+        if (selected == i) {
+          TS_HAL.lcd_printf(" [%s]  \n", options[i]);
+        } else if (cursor == i) {
+          TS_HAL.lcd_printf("> %s   \n", options[i]);
+        } else {
+          TS_HAL.lcd_printf("  %s   \n", options[i]);
+        }
+      }
 
       stackHighWaterMark = uxTaskGetStackHighWaterMark(NULL);
       Serial.print("UI: ");
       Serial.println(stackHighWaterMark);
 
-      // Hold button A for 5 seconds to turn off screen
-      if (clickCountA >= 10) {
+      // Select option 3 to sleep.
+      if (selected == 2) {
         TS_HAL.lcd_sleep(true);
         savePowerStart = millis();
       }

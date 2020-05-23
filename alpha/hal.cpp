@@ -115,9 +115,9 @@ void _TS_HAL::lcd_brightness(uint8_t level)
 
   ENTER_CRITICAL;
 #ifdef HAL_M5STICK_C
-  // m5stickc valid levels are 7-15 for some reason
-  // level / 12 -> (0-8), +7 -> 7-15
-  M5.Axp.ScreenBreath(7 + (level / 12));
+  // m5stickc valid levels are 7-12 for some reason
+  // level / 20 -> (0-5), +7 -> 7-12
+  M5.Axp.ScreenBreath(7 + (level / 20));
 #endif
   EXIT_CRITICAL;
 }
@@ -157,6 +157,15 @@ void _TS_HAL::lcd_printf(const char* t)
   ENTER_CRITICAL;
 #ifdef HAL_M5STICK_C
   M5.Lcd.printf(t);
+#endif
+  EXIT_CRITICAL;
+}
+
+void _TS_HAL::lcd_printf(const char* t, const char* a)
+{
+  ENTER_CRITICAL;
+#ifdef HAL_M5STICK_C
+  M5.Lcd.printf(t, a);
 #endif
   EXIT_CRITICAL;
 }
