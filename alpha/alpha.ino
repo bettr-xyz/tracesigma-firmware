@@ -11,7 +11,7 @@ bool powerSaveTest = false;
 
 void setup() {
   TS_HAL.begin();
-  //TS_HAL.ble_init();
+  TS_HAL.ble_init();
   TS_HAL.wifi_init();
   // disable power to microphone
   TS_HAL.power_set_mic(false);

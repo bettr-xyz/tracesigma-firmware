@@ -27,6 +27,7 @@ void _TS_HAL::begin()
 {
   log_init();
   this->bleInitialized = false;
+  this->wifiInitialized = false;
   halMutex = xSemaphoreCreateMutex();
 
   // init ble before rng
@@ -332,35 +333,41 @@ void _TS_HAL::log_init()
 // 
 void _TS_HAL::wifi_init()
 {
-	WiFi.mode(WIFI_STA);
-	WiFi.disconnect();
-	int n = 0;
-	n = WiFi.scanNetworks();
-	if (n > 3)
-	{
-		n = 3;
-	}
-	for (int i = 0; i < n; ++i)
-	{
-		//prints top 3 nearest WIFI SSIDS
-		M5.Lcd.println(WiFi.SSID(i));
-		delay(1000);
-	}
-
-	if (n == 0)
-	{
-		M5.Lcd.println("no wifi found \n");
-	}
-	else
-	{
-		//Connect to, prints name of connected WIFI. 
-		WiFi.begin(WIFI_SSID, WIFI_PASS);
-		// wait 10 seconds for connection:
-		delay(5000);
-		M5.Lcd.println("Success,connected to");
-		M5.Lcd.println(WiFi.SSID());
-		IPAddress ip = WiFi.localIP();
-	}
+  if (!this->wifiInitialized)
+  {
+  	WiFi.mode(WIFI_STA);
+  	WiFi.disconnect();
+  	int n = 0;
+  	n = WiFi.scanNetworks();
+  	if (n > 3)
+  	{
+  		n = 3;
+  	}
+  	for (int i = 0; i < n; ++i)
+  	{
+  		//prints top 3 nearest WIFI SSIDS
+  		log(WiFi.SSID(i));
+  		delay(1000);
+  	}
+  
+  	if (n == 0)
+  	{
+  		log("no wifi found \n");
+  	}
+  	else
+  	{
+  		//Connect to, prints name of connected WIFI. 
+  		WiFi.begin(WIFI_SSID, WIFI_PASS);
+      while (WiFi.status() != WL_CONNECTED) 
+      {
+        delay(1000);
+        log("Establishing connection to WiFi..");
+      }
+        log("Connected to: ");
+        log(WiFi.SSID());
+        this->wifiInitialized = true;
+  	}
+  }
 }
 
 //
