@@ -12,6 +12,7 @@ class _TS_UI
 
   private:
     void task(void*);
+    bool read_button(bool, bool*, unsigned long*);
 
 };
 

@@ -87,6 +87,7 @@ class _TS_HAL
 
     // TODO: for some reason templates aren't working with .ino
     void lcd_printf(const char*);
+    void lcd_printf(const char*, int);
     void lcd_printf(const char*, int, int, int);
 
     // proxy display calls
@@ -113,6 +114,7 @@ class _TS_HAL
     //
     void led_set(TS_Led, bool);
     bool btn_a_get();
+    bool btn_b_get();
 
 
     //
