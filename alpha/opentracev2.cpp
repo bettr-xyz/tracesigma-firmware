@@ -23,6 +23,7 @@ _OT_ProtocolV2::_OT_ProtocolV2() { }
 
 void _OT_ProtocolV2::begin()
 {
+  this->lastExchangeCount = 0;
   this->characteristicCacheMutex = xSemaphoreCreateMutex();
 
   this->serviceUUID = BLEUUID(OT_SERVICEID);
@@ -53,8 +54,6 @@ void _OT_ProtocolV2::begin()
   this->bleAdvertising->setScanResponse(true);  // TODO: do we need this? apparently need this to be true.
   this->bleAdvertising->setMinPreferred(0x06);  // functions that help with iPhone connections issue
   // TODO: find out what setMin and setMax interval really means
-
-  this->bleClient = BLEDevice::createClient();
 }
 
 BLEUUID& _OT_ProtocolV2::getServiceUUID()
@@ -91,6 +90,7 @@ bool _OT_ProtocolV2::scan_and_connect(uint8_t seconds, int8_t rssiCutoff)
   // Blocking scan
   BLEScanResults results = TS_HAL.ble_scan(seconds);
 
+  uint16_t exchangeSuccess = 0;
   uint16_t deviceCount = results.getCount();
   for (uint32_t i = 0; i < deviceCount; i++)
   {
@@ -104,7 +104,7 @@ bool _OT_ProtocolV2::scan_and_connect(uint8_t seconds, int8_t rssiCutoff)
     //uint8_t txPower = device.getTXPower();
     int8_t rssi = (int8_t)device.getRSSI();
 
-    if(rssi < rssiCutoff) continue;
+    //if(rssi < rssiCutoff) continue;
 
     Serial.print(deviceAddress.toString().c_str());
     Serial.print(" rssi: ");
@@ -113,71 +113,95 @@ bool _OT_ProtocolV2::scan_and_connect(uint8_t seconds, int8_t rssiCutoff)
     // We do not need a map of last-seen as this function should have long intervals between calls
     // Connect to each one and read + write iff parameters are correct
     // TODO: see if we can parallelize this process
-    this->connect_and_exchange(deviceAddress, rssi);
+    
+    // quick hack to recreate bleClient
+    this->bleClient = BLEDevice::createClient();
+    if( this->connect_and_exchange(device, deviceAddress, rssi) )
+    {
+      ++exchangeSuccess;
+    }
+    
+    // TODO: https://github.com/nkolban/esp32-snippets/issues/498
+    // this->bleClient->disconnect();
+    // delete this->bleClient;
+  }
+
+  if(exchangeSuccess > this->lastExchangeCount)
+  {
+    this->lastExchangeCount = exchangeSuccess;
   }
 }
 
-bool _OT_ProtocolV2::connect_and_exchange(BLEAddress address, int8_t rssi)
+bool _OT_ProtocolV2::connect_and_exchange(BLEAdvertisedDevice device, BLEAddress address, int8_t rssi)
 {
-  // Connect to the BLE Server
-  // - we need BLE_ADDR_TYPE_RANDOM as phones are using random addressing which changes over time
-  this->bleClient->connect(address, BLE_ADDR_TYPE_RANDOM);
-  BLERemoteService* pRemoteService;
-  BLERemoteCharacteristic* pRemoteCharacteristic;
-
-  if(!this->bleClient->isConnected()) 
-  {
-    Serial.println(F("Client connection failed"));
-    return false;
-  }
-
-  pRemoteService = this->bleClient->getService(this->serviceUUID);
-  if (pRemoteService == NULL)
-  {
-    if(this->bleClient->isConnected()) this->bleClient->disconnect();
-    Serial.println(F("Failed to find our service UUID"));
-    return false;
-  }
-
-  pRemoteCharacteristic = pRemoteService->getCharacteristic(this->characteristicUUID);
-  if (pRemoteCharacteristic == NULL)
-  {
-    if(this->bleClient->isConnected()) this->bleClient->disconnect();
-    Serial.println(F("Failed to find our characteristic UUID"));
-    return false;
-  }
-
-  if(!pRemoteCharacteristic->canRead() || !pRemoteCharacteristic->canWrite())
-  {
-    if(this->bleClient->isConnected()) this->bleClient->disconnect();
-    Serial.println(F("Unable to read or write"));
-    return false;
-  }
-
-  std::string buf;
-  this->prepare_central_write_request(buf, rssi);
-  pRemoteCharacteristic->writeValue(buf, false);
-  Serial.print("BLE central Send: ");
-  Serial.println(buf.c_str());
-
-  OT_ConnectionRecord connectionRecord;
-  buf = pRemoteCharacteristic->readValue();
-
-  // no need for ble client after this point
-  if(this->bleClient->isConnected()) this->bleClient->disconnect();  
+    // Connect to the BLE Server
+    // - we need BLE_ADDR_TYPE_RANDOM as phones are using random addressing which changes over time
+    Serial.println(F("Client connecting..."));
+    //this->bleClient->connect(address, BLE_ADDR_TYPE_RANDOM);
+    //this->bleClient->connect(address);
+    this->bleClient->connect(&device);
+    BLERemoteService* pRemoteService;
+    BLERemoteCharacteristic* pRemoteCharacteristic;
   
-  if(!this->process_central_read_request(buf, connectionRecord))
-  {
-    Serial.println(F("Json parse error or read failed"));
-    return false;
-  }
-
-  Serial.print("BLE central Recv: ");
-  Serial.println(buf.c_str());
+    if(!this->bleClient->isConnected()) 
+    {
+      Serial.println(F("Client connection failed"));
+      return false;
+    }
   
-  // TODO: store data read into connectionRecord somewhere
-
-  return true;
+    Serial.println(F("Client finding service..."));
+    pRemoteService = this->bleClient->getService(this->serviceUUID);
+    if (pRemoteService == NULL)
+    {
+      if(this->bleClient->isConnected()) this->bleClient->disconnect();
+      Serial.println(F("Failed to find our service UUID"));
+      return false;
+    }
+  
+    Serial.println(F("Client finding characteristic..."));
+    pRemoteCharacteristic = pRemoteService->getCharacteristic(this->characteristicUUID);
+    if (pRemoteCharacteristic == NULL)
+    {
+      if(this->bleClient->isConnected()) this->bleClient->disconnect();
+      Serial.println(F("Failed to find our characteristic UUID"));
+      return false;
+    }
+  
+    Serial.println(F("Client ensuring readwrite..."));
+    if(!pRemoteCharacteristic->canRead() || !pRemoteCharacteristic->canWrite())
+    {
+      if(this->bleClient->isConnected()) this->bleClient->disconnect();
+      Serial.println(F("Unable to read or write"));
+      return false;
+    }
+  
+    Serial.println(F("Client writing..."));
+    std::string buf;
+    this->prepare_central_write_request(buf, rssi);
+    pRemoteCharacteristic->writeValue(buf, false);
+    Serial.print("BLE central Send: ");
+    Serial.println(buf.c_str());
+  
+    OT_ConnectionRecord connectionRecord;
+    Serial.println(F("Client reading..."));
+    buf = pRemoteCharacteristic->readValue();
+  
+    Serial.println(F("Client disconnecting..."));
+    // no need for ble client after this point
+    if(this->bleClient->isConnected()) this->bleClient->disconnect();  
+    
+    if(!this->process_central_read_request(buf, connectionRecord))
+    {
+      Serial.println(F("Json parse error or read failed"));
+      return false;
+    }
+  
+    Serial.print("BLE central Recv: ");
+    Serial.println(buf.c_str());
+    
+    // TODO: store data read into connectionRecord somewhere
+  
+    return true;
 }
 
 void _OT_ProtocolV2::advertising_start()
@@ -193,6 +217,11 @@ void _OT_ProtocolV2::advertising_stop()
 uint16_t _OT_ProtocolV2::get_connected_count()
 {
   return this->bleServer->getConnectedCount();
+}
+
+uint16_t _OT_ProtocolV2::get_last_exchange_count()
+{
+  return this->lastExchangeCount;
 }
 
 void _OT_ProtocolV2::update_characteristic_cache()
@@ -214,12 +243,12 @@ void _OT_ProtocolV2::update_characteristic_cache()
 
 void _OT_ProtocolV2::onConnect(BLEServer* pServer)
 {
-  Serial.println("Device connected to BLE");
+  //Serial.println("Device connected to BLE");
 }
 
 void _OT_ProtocolV2::onDisconnect(BLEServer* pServer)
 {
-  Serial.println("Device disconnected from BLE");
+  //Serial.println("Device disconnected from BLE");
 }
 
 // Callback after data is written from writer
@@ -343,6 +372,8 @@ bool _OT_ProtocolV2::process_central_read_request(std::string& payload, OT_Conne
 {
   // enforce validity
   if (payload.length() > OT_CR_MAXLEN) return false; // filter excessive length
+
+  Serial.println(payload.c_str());
 
   StaticJsonDocument<OT_CR_MAXLEN> root;
   DeserializationError error = deserializeJson(root, payload);

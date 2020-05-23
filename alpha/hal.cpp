@@ -37,9 +37,9 @@ void _TS_HAL::begin()
   //
   // Configure power options
   //
-  M5.Axp.SetChargeCurrent(CURRENT_100MA);  // Default is 100mA
-  M5.Axp.SetChargeVoltage(VOLTAGE_4150MV); // Default is 4200mV
-  M5.Axp.SetAdcRate(ADC_RATE_025HZ);       // Default sample rate is 200Hz
+  // M5.Axp.SetChargeCurrent(CURRENT_100MA);  // Default is 100mA
+  // M5.Axp.SetChargeVoltage(VOLTAGE_4150MV); // Default is 4200mV
+  //M5.Axp.SetAdcRate(ADC_RATE_025HZ);       // Default sample rate is 200Hz
   
   M5.Lcd.setRotation(3);
   M5.Lcd.fillScreen(BLACK);
@@ -140,6 +140,15 @@ void _TS_HAL::lcd_printf(const char* t)
   ENTER_CRITICAL;
 #ifdef HAL_M5STICK_C
   M5.Lcd.printf(t);
+#endif
+  EXIT_CRITICAL;
+}
+
+void _TS_HAL::lcd_printf(const char* t, int a)
+{
+  ENTER_CRITICAL;
+#ifdef HAL_M5STICK_C
+  M5.Lcd.printf(t, a);
 #endif
   EXIT_CRITICAL;
 }
@@ -305,12 +314,7 @@ void _TS_HAL::reset()
 
 void _TS_HAL::power_set_mic(bool enabled)
 {
-  ENTER_CRITICAL;
-#ifdef HAL_M5STICK_C
-  // GPIO0 low noise LDO
-  M5.Axp.SetGPIO0(enabled);
-#endif
-  EXIT_CRITICAL;
+  // TODO: not in old M5Stick lib
 }
 
 //

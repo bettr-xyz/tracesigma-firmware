@@ -1,5 +1,6 @@
 #include "ui.h"
 #include "hal.h"
+#include "opentracev2.h"
 
 // Increase as UI thread uses more things
 #define THREAD_STACK_SIZE 5000
@@ -44,7 +45,7 @@ void _TS_UI::task(void* parameter)
   
   // Reduce screen brightness to minimum visibility to reduce power consumption
   TS_HAL.lcd_sleep(false);
-  TS_HAL.lcd_brightness(12);
+  TS_HAL.lcd_brightness(50);
 
   TS_HAL.lcd_cursor(40, 0);
   TS_HAL.lcd_printf("ALPHA TEST");
@@ -57,10 +58,10 @@ void _TS_UI::task(void* parameter)
       TS_DateTime datetime;
       TS_HAL.rtc_get(datetime);
       
-      TS_HAL.lcd_cursor(0, 15);
-      // TODO: does not work with F()
-      TS_HAL.lcd_printf("Date: %04d-%02d-%02d\n",     datetime.year, datetime.month, datetime.day);
-      TS_HAL.lcd_printf("Time: %02d : %02d : %02d\n", datetime.hour, datetime.minute, datetime.second);
+      TS_HAL.lcd_cursor(0, 16);
+      // TS_HAL.lcd_printf("Date: %04d-%02d-%02d\n",     datetime.year, datetime.month, datetime.day);
+      // TS_HAL.lcd_printf("Time: %02d : %02d : %02d\n", datetime.hour, datetime.minute, datetime.second);
+      TS_HAL.lcd_printf( "Peers : %d   \n", OT_ProtocolV2.get_last_exchange_count() );
     }
 
     // stackHighWaterMark = uxTaskGetStackHighWaterMark(NULL);

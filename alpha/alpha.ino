@@ -34,7 +34,7 @@ void loop() {
 
   // don't turn off radio if we have connected clients
   uint16_t connectedCount = OT_ProtocolV2.get_connected_count();
-  uint16_t sleepDuration = TS_HAL.random_get(1000, 3000);
+  uint16_t sleepDuration = TS_HAL.random_get(900, 1000);
 
   Serial.print(F("Devices connected: "));
   Serial.println(connectedCount);
@@ -47,25 +47,36 @@ void loop() {
 
   if(skips >= 5) { // vary the interval between scans here
     skips = 0;
-    
+
+    // Advertise and Scan for 2s
+
+    OT_ProtocolV2.advertising_start();
+  
     // spend up to 1s scanning, lowest acceptable rssi: -95
-    OT_ProtocolV2.scan_and_connect(1, -95);
+    OT_ProtocolV2.scan_and_connect(2, -95);
+
+    // disable advertising, get back to sleep
+    //OT_ProtocolV2.advertising_stop();
+    
   }
   else
   {
+    // Advertise for 1s
     ++skips;
+
+    // enable advertising
+    OT_ProtocolV2.advertising_start();
+    // just advertise for 1s
+    TS_HAL.sleep(TS_SleepMode::Task, 1000);
+    // disable advertising, get back to sleep
+    //OT_ProtocolV2.advertising_stop();
   }
 
-  // enable advertising
-  OT_ProtocolV2.advertising_start();
-  // just advertise for 1s
-  TS_HAL.sleep(TS_SleepMode::Task, 1000);
-  // disable advertising, get back to sleep
-  OT_ProtocolV2.advertising_stop();
+  
 
   // Give some time for comms after broadcasts
   // TODO: by right should wait T time after last uncompleted handshake before going back to sleep
-  TS_HAL.sleep(TS_SleepMode::Task, 100);
+  TS_HAL.sleep(TS_SleepMode::Task, 200);
 
   // TODO: call OT update_characteristic_cache at least once every 15 mins
 }
