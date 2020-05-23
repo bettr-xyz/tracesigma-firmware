@@ -48,31 +48,15 @@ void loop() {
   if(skips >= 5) { // vary the interval between scans here
     skips = 0;
 
-    // Advertise and Scan for 2s
-
-    OT_ProtocolV2.advertising_start();
-  
     // spend up to 1s scanning, lowest acceptable rssi: -95
     OT_ProtocolV2.scan_and_connect(2, -95);
-
-    // disable advertising, get back to sleep
-    //OT_ProtocolV2.advertising_stop();
     
   }
   else
   {
-    // Advertise for 1s
     ++skips;
-
-    // enable advertising
-    OT_ProtocolV2.advertising_start();
-    // just advertise for 1s
     TS_HAL.sleep(TS_SleepMode::Task, 1000);
-    // disable advertising, get back to sleep
-    //OT_ProtocolV2.advertising_stop();
   }
-
-  
 
   // Give some time for comms after broadcasts
   // TODO: by right should wait T time after last uncompleted handshake before going back to sleep
