@@ -1,6 +1,11 @@
 #ifndef __TS_UI__
 #define __TS_UI__
 
+struct button {
+  bool down;
+  unsigned long nextClick;
+};
+
 class _TS_UI
 {
   public:
@@ -12,7 +17,7 @@ class _TS_UI
 
   private:
     void task(void*);
-    bool read_button(bool, bool*, unsigned long*);
+    bool read_button(bool, button&);
 
 };
 
