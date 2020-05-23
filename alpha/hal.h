@@ -88,6 +88,7 @@ class _TS_HAL
 
     // TODO: for some reason templates aren't working with .ino
     void lcd_printf(const char*);
+    void lcd_printf(const char*, int);
     void lcd_printf(const char*, int, int, int);
 
     // proxy display calls

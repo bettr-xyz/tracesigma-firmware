@@ -161,6 +161,15 @@ void _TS_HAL::lcd_printf(const char* t)
   EXIT_CRITICAL;
 }
 
+void _TS_HAL::lcd_printf(const char* t, int a)
+{
+  ENTER_CRITICAL;
+#ifdef HAL_M5STICK_C
+  M5.Lcd.printf(t, a);
+#endif
+  EXIT_CRITICAL;
+}
+
 void _TS_HAL::lcd_printf(const char* t, int a, int b, int c)
 {
   ENTER_CRITICAL;
