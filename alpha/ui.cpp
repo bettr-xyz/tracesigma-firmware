@@ -61,6 +61,12 @@ void _TS_UI::task(void* parameter)
       // TODO: does not work with F()
       TS_HAL.lcd_printf("Date: %04d-%02d-%02d\n",     datetime.year, datetime.month, datetime.day);
       TS_HAL.lcd_printf("Time: %02d : %02d : %02d\n", datetime.hour, datetime.minute, datetime.second);
+      if (TS_HAL.power_is_charging()) 
+      {
+        TS_HAL.lcd_printf("Status: Charging    ");
+      } else {
+        TS_HAL.lcd_printf("Status: Not Charging");
+      }
     }
 
     // stackHighWaterMark = uxTaskGetStackHighWaterMark(NULL);
@@ -104,4 +110,3 @@ void _TS_UI::task(void* parameter)
     TS_HAL.sleep(TS_SleepMode::Task, 250);
   }
 }
-
