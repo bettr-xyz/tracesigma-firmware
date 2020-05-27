@@ -36,9 +36,6 @@ void _TS_HAL::begin()
   M5.Lcd.fillScreen(BLACK);
   M5.Lcd.setTextSize(1);
 
-  // enable to measure battery level
-  M5.Axp.EnableCoulombcounter();
-
   // Set LED pins
   pinMode(10, OUTPUT);
   EXIT_CRITICAL;
@@ -307,13 +304,15 @@ void _TS_HAL::power_set_mic(bool enabled)
   EXIT_CRITICAL;
 }
 
-uint8_t _TS_HAL::power_get_batt_level(){
+uint8_t _TS_HAL::power_get_batt_level()
+{
   long level;
-  ENTER_CRITICAL;
 #ifdef HAL_M5STICK_C
-  level = map(M5.Axp.GetVbatData() * 1.1, 3100, 4000, 0, 100);
-#endif
+  ENTER_CRITICAL;
+  level = M5.Axp.GetVbatData();
   EXIT_CRITICAL;
+  level = map(level * 1.1, 3100, 4000, 0, 100);
+#endif
   return constrain(level, 0, 100);
 }
 
