@@ -78,7 +78,8 @@ class _OT_ProtocolV2
     
     bool scan_and_connect(uint8_t seconds, int8_t rssiCutoff);
 
-    bool connect_and_exchange(BLEAddress address, int8_t rssi);
+    bool connect_and_exchange(BLEAdvertisedDevice &device, BLEAddress &address, int8_t rssi);
+    bool connect_and_exchange_impl(BLEClient *bleClient, BLEAdvertisedDevice &device, BLEAddress &address, int8_t rssi);
 
     // TODO: callback for storage
 
@@ -127,10 +128,10 @@ class _OT_ProtocolV2
     BLEUUID   characteristicUUID;
     
     BLEServer         *bleServer;
-    BLEClient         *bleClient;
     BLEService        *bleService;
     BLECharacteristic *bleCharacteristic;
     BLEAdvertising    *bleAdvertising;
+    BLEClient         *staleBleClient;
 
     // Caches the json string to be put in characteristic cache
     // - we do not want to repeatedly recompute this string, as its only updated once every 15 min

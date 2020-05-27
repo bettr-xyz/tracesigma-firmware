@@ -23,6 +23,7 @@ _OT_ProtocolV2::_OT_ProtocolV2() { }
 
 void _OT_ProtocolV2::begin()
 {
+  this->staleBleClient = NULL;
   this->characteristicCacheMutex = xSemaphoreCreateMutex();
 
   this->serviceUUID = BLEUUID(OT_SERVICEID);
@@ -54,7 +55,6 @@ void _OT_ProtocolV2::begin()
   this->bleAdvertising->setMinPreferred(0x06);  // functions that help with iPhone connections issue
   // TODO: find out what setMin and setMax interval really means
 
-  this->bleClient = BLEDevice::createClient();
 }
 
 BLEUUID& _OT_ProtocolV2::getServiceUUID()
@@ -113,28 +113,48 @@ bool _OT_ProtocolV2::scan_and_connect(uint8_t seconds, int8_t rssiCutoff)
     // We do not need a map of last-seen as this function should have long intervals between calls
     // Connect to each one and read + write iff parameters are correct
     // TODO: see if we can parallelize this process
-    this->connect_and_exchange(deviceAddress, rssi);
+    this->connect_and_exchange(device, deviceAddress, rssi);
   }
 }
 
-bool _OT_ProtocolV2::connect_and_exchange(BLEAddress address, int8_t rssi)
+bool _OT_ProtocolV2::connect_and_exchange(BLEAdvertisedDevice &device, BLEAddress &address, int8_t rssi)
+{
+  BLEClient *bleClient = BLEDevice::createClient(); // new BLEClient
+  bool ret = this->connect_and_exchange_impl(bleClient, device, address, rssi);
+  if(bleClient->isConnected()) bleClient->disconnect();
+
+  // We always keep 1 stale bleClient to give it time to cleanup before delete
+  // NOTE: if it crashes here still, then we'll do something about it e.g. delay loop
+  if(this->staleBleClient != NULL)
+  {
+    // TODO: still crashes here frequently on 2nd ble probing
+    // delete this->staleBleClient;
+  }
+
+  this->staleBleClient = bleClient;
+  return ret;
+}
+
+bool _OT_ProtocolV2::connect_and_exchange_impl(BLEClient *bleClient, BLEAdvertisedDevice &device, BLEAddress &address, int8_t rssi)
 {
   // Connect to the BLE Server
-  // - we need BLE_ADDR_TYPE_RANDOM as phones are using random addressing which changes over time
-  this->bleClient->connect(address, BLE_ADDR_TYPE_RANDOM);
+
+  // NOTE: used to be this but failed to do TraceStick-TraceStick connection
+  // bleClient->connect(address, BLE_ADDR_TYPE_RANDOM);
+  bleClient->connect(&device);
+  
   BLERemoteService* pRemoteService;
   BLERemoteCharacteristic* pRemoteCharacteristic;
 
-  if(!this->bleClient->isConnected()) 
+  if(!bleClient->isConnected()) 
   {
     Serial.println(F("Client connection failed"));
     return false;
   }
 
-  pRemoteService = this->bleClient->getService(this->serviceUUID);
+  pRemoteService = bleClient->getService(this->serviceUUID);
   if (pRemoteService == NULL)
   {
-    if(this->bleClient->isConnected()) this->bleClient->disconnect();
     Serial.println(F("Failed to find our service UUID"));
     return false;
   }
@@ -142,14 +162,12 @@ bool _OT_ProtocolV2::connect_and_exchange(BLEAddress address, int8_t rssi)
   pRemoteCharacteristic = pRemoteService->getCharacteristic(this->characteristicUUID);
   if (pRemoteCharacteristic == NULL)
   {
-    if(this->bleClient->isConnected()) this->bleClient->disconnect();
     Serial.println(F("Failed to find our characteristic UUID"));
     return false;
   }
 
   if(!pRemoteCharacteristic->canRead() || !pRemoteCharacteristic->canWrite())
   {
-    if(this->bleClient->isConnected()) this->bleClient->disconnect();
     Serial.println(F("Unable to read or write"));
     return false;
   }
@@ -162,9 +180,6 @@ bool _OT_ProtocolV2::connect_and_exchange(BLEAddress address, int8_t rssi)
 
   OT_ConnectionRecord connectionRecord;
   buf = pRemoteCharacteristic->readValue();
-
-  // no need for ble client after this point
-  if(this->bleClient->isConnected()) this->bleClient->disconnect();  
   
   if(!this->process_central_read_request(buf, connectionRecord))
   {
