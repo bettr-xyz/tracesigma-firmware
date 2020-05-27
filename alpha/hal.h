@@ -121,6 +121,7 @@ class _TS_HAL
     void power_off();
     void reset();
     void power_set_mic(bool);
+    uint8_t power_get_batt_level();
     bool power_is_charging();
 
     

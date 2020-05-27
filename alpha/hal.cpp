@@ -314,6 +314,18 @@ void _TS_HAL::power_set_mic(bool enabled)
   EXIT_CRITICAL;
 }
 
+uint8_t _TS_HAL::power_get_batt_level()
+{
+  long level;
+#ifdef HAL_M5STICK_C
+  ENTER_CRITICAL;
+  level = M5.Axp.GetVbatData();
+  EXIT_CRITICAL;
+  level = map(level * 1.1, 3100, 4000, 0, 100);
+#endif
+  return constrain(level, 0, 100);
+}
+
 bool _TS_HAL::power_is_charging()
 {
   uint8_t is_charging;
