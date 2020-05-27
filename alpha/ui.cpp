@@ -62,6 +62,12 @@ void _TS_UI::task(void* parameter)
       TS_HAL.lcd_printf("Date: %04d-%02d-%02d\n",     datetime.year, datetime.month, datetime.day);
       TS_HAL.lcd_printf("Time: %02d : %02d : %02d\n", datetime.hour, datetime.minute, datetime.second);
       TS_HAL.lcd_printf("Battery: %d%%  ", TS_HAL.power_get_batt_level(), NULL, NULL);
+      if (TS_HAL.power_is_charging()) 
+      {
+        TS_HAL.lcd_printf("Status: Charging    ");
+      } else {
+        TS_HAL.lcd_printf("Status: Not Charging");
+      }
     }
 
     // stackHighWaterMark = uxTaskGetStackHighWaterMark(NULL);

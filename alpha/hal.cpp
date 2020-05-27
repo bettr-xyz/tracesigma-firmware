@@ -5,6 +5,7 @@
 
 #ifdef HAL_M5STICK_C
 #include <M5StickC.h>
+#include "AXP192.h"
 
 #elif HAL_M5STACK
 #include <M5Stack.h>
@@ -32,6 +33,15 @@ void _TS_HAL::begin()
 #ifdef HAL_M5STICK_C
   ENTER_CRITICAL;
   M5.begin();
+
+  //
+  // Configure power options
+  //
+  M5.Axp.SetChargeCurrent(CURRENT_100MA);  // Default is 100mA
+  M5.Axp.SetChargeVoltage(VOLTAGE_4150MV); // Default is 4200mV
+  M5.Axp.SetAdcRate(ADC_RATE_025HZ);       // Default sample rate is 200Hz
+  M5.Axp.SetVOff(VOLTAGE_OFF_3200MV);      // Default is 3000mV
+  
   M5.Lcd.setRotation(3);
   M5.Lcd.fillScreen(BLACK);
   M5.Lcd.setTextSize(1);
@@ -314,6 +324,17 @@ uint8_t _TS_HAL::power_get_batt_level()
   level = map(level * 1.1, 3100, 4000, 0, 100);
 #endif
   return constrain(level, 0, 100);
+}
+
+bool _TS_HAL::power_is_charging()
+{
+  uint8_t is_charging;
+  ENTER_CRITICAL;
+#ifdef HAL_M5STICK_C
+  is_charging = M5.Axp.GetBatteryChargingStatus() & (1 << 6);
+#endif
+  EXIT_CRITICAL;
+  return is_charging;
 }
 
 //
