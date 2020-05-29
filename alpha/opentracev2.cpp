@@ -23,7 +23,6 @@ _OT_ProtocolV2::_OT_ProtocolV2() { }
 
 void _OT_ProtocolV2::begin()
 {
-  this->staleBleClient = NULL;
   this->characteristicCacheMutex = xSemaphoreCreateMutex();
 
   this->serviceUUID = BLEUUID(OT_SERVICEID);
@@ -121,17 +120,25 @@ bool _OT_ProtocolV2::connect_and_exchange(BLEAdvertisedDevice &device, BLEAddres
 {
   BLEClient *bleClient = BLEDevice::createClient(); // new BLEClient
   bool ret = this->connect_and_exchange_impl(bleClient, device, address, rssi);
-  if(bleClient->isConnected()) bleClient->disconnect();
 
-  // We always keep 1 stale bleClient to give it time to cleanup before delete
-  // NOTE: if it crashes here still, then we'll do something about it e.g. delay loop
-  if(this->staleBleClient != NULL)
+  // Trigger anyway to ensure cleanup, ble lib is glitchy
+  bleClient->disconnect();
+
+  // Waits up to 1s for it before forcefully deleting (and crashing)
+  for(uint8_t stone = 0; stone < 10; ++stone)
   {
-    // TODO: still crashes here frequently on 2nd ble probing
-    // delete this->staleBleClient;
+    if(bleClient->isConnected())
+    {
+      if(stone >= 9)
+      {
+        Serial.println("WARN: _OT_ProtocolV2::connect_and_exchange: bleClient still connected when deleted!");
+      }
+      
+      TS_HAL.sleep(TS_SleepMode::Task, 100);
+    }
   }
-
-  this->staleBleClient = bleClient;
+  
+  delete bleClient;
   return ret;
 }
 

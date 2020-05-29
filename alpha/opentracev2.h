@@ -131,7 +131,6 @@ class _OT_ProtocolV2
     BLEService        *bleService;
     BLECharacteristic *bleCharacteristic;
     BLEAdvertising    *bleAdvertising;
-    BLEClient         *staleBleClient;
 
     // Caches the json string to be put in characteristic cache
     // - we do not want to repeatedly recompute this string, as its only updated once every 15 min
