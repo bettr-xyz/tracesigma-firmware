@@ -149,7 +149,7 @@ class _TS_HAL
 	//
 	// WIFI 
 	//
-	void wifi_init();
+	void wifi_connect();
 
     //
     // Debug

@@ -10,9 +10,9 @@
 #include <WiFi.h>
 #define WIFI_SSID "Test"       // Enter your SSID here
 #define WIFI_PASS "password"    // Enter your WiFi password here
+#define SSID_DISPLAY_COUNT 3
 #elif HAL_M5STACK
 #include <M5Stack.h>
-
 #endif
 
 #define ENTER_CRITICAL  xSemaphoreTake(halMutex, portMAX_DELAY)
@@ -335,26 +335,27 @@ void _TS_HAL::log_init()
 //
 // WIFI setup
 // 
-void _TS_HAL::wifi_init()
+void _TS_HAL::wifi_connect()
 {
   if (!this->wifiInitialized)
   {
   	WiFi.mode(WIFI_STA);
   	WiFi.disconnect();
-  	int n = 0;
-  	n = WiFi.scanNetworks();
-  	if (n > 3)
+  	int SSID_COUNT = 0;
+  	SSID_COUNT = WiFi.scanNetworks();
+  	if (SSID_COUNT > 3)
   	{
-  		n = 3;
+    // limit maximum amount of SSID's displayed.
+  		SSID_COUNT = SSID_DISPLAY_COUNT;
   	}
-  	for (int i = 0; i < n; ++i)
+  	for (int i = 0; i < SSID_COUNT; ++i)
   	{
   		//prints top 3 nearest WIFI SSIDS
   		log(WiFi.SSID(i));
-  		hal_delay();
+  		sleep(TS_SleepMode::Task, 100);
   	}
   
-  	if (n == 0)
+  	if (SSID_COUNT == 0)
   	{
   		log("No WIFI Networks Found \n");
   	}
@@ -362,7 +363,7 @@ void _TS_HAL::wifi_init()
   	{
   		//Connect to, prints name of connected WIFI. 
   		WiFi.begin(WIFI_SSID, WIFI_PASS);
-      hal_delay();
+      sleep(TS_SleepMode::Task, 100);
       if (WiFi.status() != WL_CONNECTED) 
       {
 

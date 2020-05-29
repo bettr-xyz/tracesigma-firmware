@@ -12,7 +12,7 @@ bool powerSaveTest = false;
 void setup() {
   TS_HAL.begin();
   TS_HAL.ble_init();
-  TS_HAL.wifi_init();
+  TS_HAL.wifi_connect();
   // disable power to microphone
   TS_HAL.power_set_mic(false);
 
@@ -68,6 +68,4 @@ void loop() {
   TS_HAL.sleep(TS_SleepMode::Task, 100);
   
   // TODO: call OT update_characteristic_cache at least once every 15 mins
-
-  // POLL WIFI_INIT test
 }
