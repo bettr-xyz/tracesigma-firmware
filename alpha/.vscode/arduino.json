@@ -1,0 +1,7 @@
+{
+    "board": "esp32:esp32:m5stick-c",
+    "configuration": "PartitionScheme=default,UploadSpeed=1500000,DebugLevel=none",
+    "programmer": "AVR ISP",
+    "port": "COM3",
+    "sketch": "alpha.ino"
+}

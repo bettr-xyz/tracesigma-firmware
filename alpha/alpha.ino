@@ -66,6 +66,8 @@ void loop() {
   // Give some time for comms after broadcasts
   // TODO: by right should wait T time after last uncompleted handshake before going back to sleep
   TS_HAL.sleep(TS_SleepMode::Task, 100);
-
+  
   // TODO: call OT update_characteristic_cache at least once every 15 mins
+
+  // POLL WIFI_INIT test
 }

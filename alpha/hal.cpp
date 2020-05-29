@@ -89,6 +89,10 @@ uint32_t _TS_HAL::random_get(uint32_t min, uint32_t max)
   return val;
 }
 
+void _TS_HAL::hal_delay()
+{
+    delay(1000);
+}
 
 
 //
@@ -347,22 +351,24 @@ void _TS_HAL::wifi_init()
   	{
   		//prints top 3 nearest WIFI SSIDS
   		log(WiFi.SSID(i));
-  		delay(1000);
+  		hal_delay();
   	}
   
   	if (n == 0)
   	{
-  		log("no wifi found \n");
+  		log("No WIFI Networks Found \n");
   	}
   	else
   	{
   		//Connect to, prints name of connected WIFI. 
   		WiFi.begin(WIFI_SSID, WIFI_PASS);
-      while (WiFi.status() != WL_CONNECTED) 
+      hal_delay();
+      if (WiFi.status() != WL_CONNECTED) 
       {
-        delay(1000);
-        log("Establishing connection to WiFi..");
+
+        log("Not Connected");
       }
+      else if (WiFi.status() == WL_CONNECTED)
         log("Connected to: ");
         log(WiFi.SSID());
         this->wifiInitialized = true;
