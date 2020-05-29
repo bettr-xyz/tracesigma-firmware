@@ -1,5 +1,6 @@
 #include "cleanbox.h"
 #include "hal.h"
+#include "radio.h"
 #include "ui.h"
 #include "opentracev2.h"
 
@@ -12,7 +13,8 @@ bool powerSaveTest = false;
 void setup() {
   TS_HAL.begin();
   TS_HAL.ble_init();
-  TS_HAL.wifi_connect();
+  TS_RADIO.begin();
+  TS_RADIO.wifi_connect();
   // disable power to microphone
   TS_HAL.power_set_mic(false);
 

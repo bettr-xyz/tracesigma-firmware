@@ -89,11 +89,6 @@ uint32_t _TS_HAL::random_get(uint32_t min, uint32_t max)
   return val;
 }
 
-void _TS_HAL::hal_delay()
-{
-    delay(1000);
-}
-
 
 //
 // LCD
@@ -345,7 +340,7 @@ void _TS_HAL::wifi_connect()
   	SSID_COUNT = WiFi.scanNetworks();
   	if (SSID_COUNT > 3)
   	{
-    // limit maximum amount of SSID's displayed.
+    // limit maximum number of SSID networks displayed.
   		SSID_COUNT = SSID_DISPLAY_COUNT;
   	}
   	for (int i = 0; i < SSID_COUNT; ++i)

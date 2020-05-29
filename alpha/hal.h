@@ -67,9 +67,6 @@ class _TS_HAL
     // a random number between min and max-1 (long)
     uint32_t random_get(uint32_t, uint32_t);
 
-    // HAL delay 
-    void hal_delay();
-
 
     //
     // LCD
