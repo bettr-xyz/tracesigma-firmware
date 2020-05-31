@@ -221,6 +221,30 @@ bool _TS_HAL::btn_a_get()
 #endif
 }
 
+TS_ButtonState _TS_HAL::btn_power_get()
+{
+  TS_ButtonState state;
+  #ifdef HAL_M5STICK_C
+    ENTER_CRITICAL;
+    uint8_t readBtn = M5.Axp.GetBtnPress();
+    EXIT_CRITICAL;
+    switch (readBtn)
+    {
+      case 0x00:
+        state = TS_ButtonState::NotPressed;
+        break;
+      case 0x01:
+        state = TS_ButtonState::Long;
+        break;
+      case 0x02:
+        state = TS_ButtonState::Short;
+        break;
+    }
+  #endif
+
+  return state;
+}
+
 
 //
 // BLE

@@ -1,5 +1,4 @@
 #include "io.h"
-#include "hal.h"
 
 portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
 
@@ -19,26 +18,25 @@ IOButton::~IOButton()
 void IOButton::isr() 
 {
   portENTER_CRITICAL_ISR(&mux);
-  numberKeyPresses += 1;
-  pressed = true;
+  irq = true;
   portEXIT_CRITICAL_ISR(&mux);
 }
 
-bool IOButton::handleInterrupt() 
+TS_ButtonState IOButton::get_state() 
 {
-  if (hasInterrupt()) 
+  if (has_interrupt()) 
   {
     portENTER_CRITICAL_ISR(&mux);
-    pressed = false;
+    irq = false;
     portEXIT_CRITICAL_ISR(&mux);
-
-    return true;
+    
+    return TS_ButtonState::Short;
   } else 
   {
-    return false;
+    return TS_ButtonState::NotPressed;
   }
 }
 
-bool IOButton::hasInterrupt(){
-  return pressed;
+bool IOButton::has_interrupt(){
+  return irq;
 }

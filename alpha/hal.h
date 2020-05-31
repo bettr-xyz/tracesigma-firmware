@@ -111,6 +111,7 @@ class _TS_HAL
     //
     void led_set(TS_Led, bool);
     bool btn_a_get();
+    TS_ButtonState btn_power_get();
 
 
     //

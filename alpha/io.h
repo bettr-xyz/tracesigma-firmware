@@ -2,6 +2,7 @@
 #include <FunctionalInterrupt.h>
 //#include <M5StickC.h>
 #include <Arduino.h>
+#include "hal.h"
 
 #ifndef __TS_IO__
 #define __TS_IO__
@@ -16,13 +17,13 @@ class IOButton
     ~IOButton();
 
     void IRAM_ATTR isr();
-    bool handleInterrupt();
-    bool hasInterrupt();
+    TS_ButtonState get_state();
+    bool has_interrupt();
 
   private:
     const uint8_t PIN;
     volatile uint32_t numberKeyPresses;
-    volatile bool pressed;
+    volatile bool irq;
 };
 
 
