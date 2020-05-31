@@ -37,6 +37,13 @@ enum TS_SleepMode
   Deep,     // suspends cpu, wake w/ reboot
 };
 
+enum TS_ButtonState
+{
+  NotPressed,
+  Short,
+  Long,
+};
+
 enum TS_Led
 {
   Red,

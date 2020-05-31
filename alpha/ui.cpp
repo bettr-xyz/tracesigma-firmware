@@ -1,6 +1,7 @@
 #include "ui.h"
 #include "hal.h"
 
+
 // Increase as UI thread uses more things
 #define THREAD_STACK_SIZE 5000
 
@@ -19,6 +20,11 @@ void _TS_UI::staticTask(void* parameter)
 
 void _TS_UI::begin()
 {
+
+  this->buttonA = new IOButton(BUTTONA);
+  this->buttonB = new IOButton(BUTTONB);
+  
+  
   // UI thread should run really fast
   xTaskCreatePinnedToCore(
     _TS_UI::staticTask, // thread fn
@@ -74,39 +80,13 @@ void _TS_UI::task(void* parameter)
     // Serial.print("UI: ");
     // Serial.println(stackHighWaterMark);
 
-    reading = TS_HAL.btn_a_get();
-
-    if (reading != lastStateBtnA)
-    {
-      lastDebounceTime = millis();
+    if (this->buttonA->handleInterrupt()) {
+      Serial.println("Button A pressed");
     }
 
-    timeSinceLastDebounce = (millis() - lastDebounceTime);
-
-    if (timeSinceLastDebounce > DEBOUNCE_DELAY)
-    {
-      if (reading != currStateBtnA)
-      {
-        currStateBtnA = reading;
-
-        if (currStateBtnA)
-        {
-          SavePower = !SavePower;
-          if (SavePower)
-          {
-            TS_HAL.lcd_sleep(true);
-            
-          }
-          else
-          {
-            TS_HAL.lcd_sleep(false);
-            TS_HAL.lcd_brightness(12);
-          }
-        }
-      }
+    if (this->buttonB->handleInterrupt()) {
+      Serial.println("Button B pressed");
     }
-
-    lastStateBtnA = reading;
 
     TS_HAL.sleep(TS_SleepMode::Task, 250);
   }
