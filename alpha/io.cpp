@@ -2,8 +2,6 @@
 
 portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
 
-volatile bool interruptAvailable;
-
 IOButton::IOButton(uint8_t reqPin) : PIN(reqPin)
 {
   pinMode(PIN, INPUT_PULLUP);
@@ -31,12 +29,14 @@ TS_ButtonState IOButton::get_state()
     portEXIT_CRITICAL_ISR(&mux);
     
     return TS_ButtonState::Short;
-  } else 
+  } 
+  else 
   {
     return TS_ButtonState::NotPressed;
   }
 }
 
-bool IOButton::has_interrupt(){
+bool IOButton::has_interrupt()
+{
   return irq;
 }

@@ -1,6 +1,5 @@
 #include <stdint.h>
 #include <FunctionalInterrupt.h>
-//#include <M5StickC.h>
 #include <Arduino.h>
 #include "hal.h"
 
@@ -22,9 +21,7 @@ class IOButton
 
   private:
     const uint8_t PIN;
-    volatile uint32_t numberKeyPresses;
     volatile bool irq;
 };
-
 
 #endif

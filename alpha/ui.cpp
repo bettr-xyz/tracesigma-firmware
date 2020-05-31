@@ -80,18 +80,22 @@ void _TS_UI::task(void* parameter)
     // Serial.print("UI: ");
     // Serial.println(stackHighWaterMark);
 
-    if (this->buttonA->get_state() == TS_ButtonState::Short) {
+    if (this->buttonA->get_state() == TS_ButtonState::Short) 
+    {
       Serial.println("Button A pressed");
     }
 
-    if (this->buttonB->get_state() == TS_ButtonState::Short) {
+    if (this->buttonB->get_state() == TS_ButtonState::Short) 
+    {
       Serial.println("Button B pressed");
     }
 
     TS_ButtonState powerButtonState = TS_HAL.btn_power_get();
-    if (powerButtonState == TS_ButtonState::Short) {
+    if (powerButtonState == TS_ButtonState::Short) 
+    {
       Serial.println("Power button short press");
-    } else if (powerButtonState == TS_ButtonState::Long) {
+    } else if (powerButtonState == TS_ButtonState::Long) 
+    {
       Serial.println("Power button long press");
     }
 
