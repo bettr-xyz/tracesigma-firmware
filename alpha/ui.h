@@ -12,6 +12,7 @@ class _TS_UI
 
   private:
     void task(void*);
+
 };
 
 extern _TS_UI TS_UI;
