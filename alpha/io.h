@@ -16,7 +16,7 @@ enum TS_ButtonState
 class IOButton
 {
   public:
-    IOButton(uint8_t reqPin);
+    IOButton(uint8_t reqPin, TS_ButtonState(*f)());
     ~IOButton();
 
     void IRAM_ATTR isr();
@@ -25,6 +25,7 @@ class IOButton
 
   private:
     const uint8_t PIN;
+    TS_ButtonState(*FUNC)();
     volatile bool irq;
 };
 

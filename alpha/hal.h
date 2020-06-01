@@ -167,6 +167,7 @@ class _TS_HAL
 
     IOButton* buttonA;
     IOButton* buttonB;
+    IOButton* buttonP;
 
 };
 
