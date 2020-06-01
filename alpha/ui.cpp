@@ -20,11 +20,6 @@ void _TS_UI::staticTask(void* parameter)
 
 void _TS_UI::begin()
 {
-
-  this->buttonA = new IOButton(BUTTONA);
-  this->buttonB = new IOButton(BUTTONB);
-  
-  
   // UI thread should run really fast
   xTaskCreatePinnedToCore(
     _TS_UI::staticTask, // thread fn
@@ -80,12 +75,12 @@ void _TS_UI::task(void* parameter)
     // Serial.print("UI: ");
     // Serial.println(stackHighWaterMark);
 
-    if (this->buttonA->get_state() == TS_ButtonState::Short) 
+    if (TS_HAL.btn_a_get() == TS_ButtonState::Short) 
     {
       Serial.println("Button A pressed");
     }
 
-    if (this->buttonB->get_state() == TS_ButtonState::Short) 
+    if (TS_HAL.btn_b_get() == TS_ButtonState::Short) 
     {
       Serial.println("Button B pressed");
     }

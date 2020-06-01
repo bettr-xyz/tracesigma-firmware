@@ -1,5 +1,3 @@
-#include "io.h"
-
 #ifndef __TS_UI__
 #define __TS_UI__
 
@@ -14,9 +12,6 @@ class _TS_UI
 
   private:
     void task(void*);
-    IOButton* buttonA;
-    IOButton* buttonB;
-
 };
 
 extern _TS_UI TS_UI;

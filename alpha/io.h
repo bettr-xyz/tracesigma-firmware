@@ -6,8 +6,12 @@
 #ifndef __TS_IO__
 #define __TS_IO__
 
-#define BUTTONA 37
-#define BUTTONB 39
+enum TS_ButtonState
+{
+  NotPressed,
+  Short,
+  Long,
+};
 
 class IOButton
 {

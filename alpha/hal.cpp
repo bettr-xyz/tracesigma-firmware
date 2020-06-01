@@ -7,6 +7,9 @@
 #include <M5StickC.h>
 #include "AXP192.h"
 
+#define BUTTONA 37
+#define BUTTONB 39
+
 #elif HAL_M5STACK
 #include <M5Stack.h>
 
@@ -29,6 +32,9 @@ void _TS_HAL::begin()
   // init ble before rng
   BLEDevice::init(DEVICE_NAME);
   this->random_seed();
+
+  // init buttons
+  btn_init();
 
 #ifdef HAL_M5STICK_C
   ENTER_CRITICAL;
@@ -214,11 +220,20 @@ void _TS_HAL::led_set(TS_Led led, bool enable)
 #endif
 }
 
-bool _TS_HAL::btn_a_get()
+void _TS_HAL::btn_init()
 {
-#ifdef HAL_M5STICK_C
-  return M5.BtnA.read() == 1;
-#endif
+  this->buttonA = new IOButton(BUTTONA);
+  this->buttonB = new IOButton(BUTTONB);
+}
+
+TS_ButtonState _TS_HAL::btn_a_get()
+{
+  return this->buttonA->get_state();
+}
+
+TS_ButtonState _TS_HAL::btn_b_get()
+{
+  return this->buttonB->get_state();
 }
 
 TS_ButtonState _TS_HAL::btn_power_get()

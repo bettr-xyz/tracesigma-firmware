@@ -13,6 +13,7 @@
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
+#include "io.h"
 
 //
 // Platform-specific definitions
@@ -35,13 +36,6 @@ enum TS_SleepMode
   Task,     // allow task scheduling, better for longer durations
   Light,    // less accurate, has wakeup delay
   Deep,     // suspends cpu, wake w/ reboot
-};
-
-enum TS_ButtonState
-{
-  NotPressed,
-  Short,
-  Long,
 };
 
 enum TS_Led
@@ -110,7 +104,9 @@ class _TS_HAL
     // Misc IO
     //
     void led_set(TS_Led, bool);
-    bool btn_a_get();
+    void btn_init();
+    TS_ButtonState btn_a_get();
+    TS_ButtonState btn_b_get();
     TS_ButtonState btn_power_get();
 
 
@@ -168,6 +164,10 @@ class _TS_HAL
     BLEScan*        pBLEScan;
     BLEServer*      pBLEServer;
     BLEAdvertising* pBLEAdvertiser;
+
+    IOButton* buttonA;
+    IOButton* buttonB;
+
 };
 
 extern _TS_HAL TS_HAL;
