@@ -2,6 +2,7 @@
 #include "hal.h"
 #include "ui.h"
 #include "opentracev2.h"
+#include "serial_cmd.h"
 
 // Notes:
 // - look at mods/boards.diff.txt -- set CPU to 80mhz instead of 240mhz
@@ -20,6 +21,10 @@ void setup() {
 
   // This starts a new task
   TS_UI.begin();
+
+  // Start serial command console
+  TS_SerialCmd.init();
+  TS_SerialCmd.begin();
 }
 
 int skips = 0;

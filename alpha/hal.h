@@ -105,6 +105,8 @@ class _TS_HAL
     void led_set(TS_Led, bool);
     bool btn_a_get();
 
+    void uart_init();
+
 
     //
     // BLE
@@ -124,11 +126,11 @@ class _TS_HAL
     uint8_t power_get_batt_level();
     bool power_is_charging();
 
+
     
     //
     // Common logging functions
     //
-    void log_init();
 
     // Logs a line, similar to println
     template<typename T> inline void log(T val)

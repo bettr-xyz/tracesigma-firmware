@@ -4,13 +4,18 @@
 // Lower level library include decisions go here
 
 #ifdef HAL_M5STICK_C
+
 #include <M5StickC.h>
 #include "AXP192.h"
+#include "driver/uart.h"
 
 #elif HAL_M5STACK
-#include <M5Stack.h>
+
+// #include <M5Stack.h>
 
 #endif
+
+#define CONFIG_ESP_CONSOLE_UART_NUM 0
 
 #define ENTER_CRITICAL  xSemaphoreTake(halMutex, portMAX_DELAY)
 #define EXIT_CRITICAL   xSemaphoreGive(halMutex)
@@ -22,7 +27,7 @@ _TS_HAL::_TS_HAL() {}
 
 void _TS_HAL::begin()
 {
-  log_init();
+  this->uart_init();
   this->bleInitialized = false;
   halMutex = xSemaphoreCreateMutex();
 
@@ -32,7 +37,9 @@ void _TS_HAL::begin()
 
 #ifdef HAL_M5STICK_C
   ENTER_CRITICAL;
-  M5.begin();
+  
+  // don't enable serial by default
+  M5.begin(true, true, false);
 
   //
   // Configure power options
@@ -41,7 +48,9 @@ void _TS_HAL::begin()
   M5.Axp.SetChargeVoltage(VOLTAGE_4150MV); // Default is 4200mV
   M5.Axp.SetAdcRate(ADC_RATE_025HZ);       // Default sample rate is 200Hz
   M5.Axp.SetVOff(VOLTAGE_OFF_3200MV);      // Default is 3000mV
-  
+
+
+  // Default screen options
   M5.Lcd.setRotation(3);
   M5.Lcd.fillScreen(BLACK);
   M5.Lcd.setTextSize(1);
@@ -221,6 +230,27 @@ bool _TS_HAL::btn_a_get()
 #endif
 }
 
+void _TS_HAL::uart_init()
+{
+  /* Configure UART. Note that REF_TICK is used so that the baud rate remains
+   * correct while APB frequency is changing in light sleep mode.
+   */
+  uart_config_t uart_config;
+  uart_config.baud_rate     = 115200;
+  uart_config.data_bits     = UART_DATA_8_BITS;
+  uart_config.parity        = UART_PARITY_DISABLE;
+  uart_config.stop_bits     = UART_STOP_BITS_1;
+  uart_config.use_ref_tick  = true;
+  uart_config.flow_ctrl     = UART_HW_FLOWCTRL_DISABLE;
+  uart_config.rx_flow_ctrl_thresh = 0;
+  
+  ESP_ERROR_CHECK( uart_param_config((uart_port_t)CONFIG_ESP_CONSOLE_UART_NUM, &uart_config) );
+
+  /* Install UART driver for interrupt-driven reads and writes */
+  ESP_ERROR_CHECK( uart_driver_install((uart_port_t)CONFIG_ESP_CONSOLE_UART_NUM, 256, 0, 0, NULL, 0) );
+}
+
+
 
 //
 // BLE
@@ -340,13 +370,6 @@ bool _TS_HAL::power_is_charging()
 //
 // Common logging functions
 //
-
-void _TS_HAL::log_init()
-{
-#ifdef HAL_SERIAL_LOG
-  Serial.begin(115200);
-#endif
-}
 
 
 
