@@ -1,7 +1,8 @@
 #include "radio.h"
 #include "esp_pm.h"
 
-// Lower level library include decisions go here
+// WiFi functions, call wifi_connect() to connect to "Test" wifi, wifi_disconnect() to disconnect.
+// Prints helpful debug to console upon call. 
 
 #ifdef HAL_M5STICK_C
 #include <M5StickC.h>
@@ -30,7 +31,8 @@ void _TS_RADIO::begin()
 
 //
 // Connect to WIFI
-// Scans for SSIDs, if preset SSID is found, attempt to connect, else prints the failed connection attempt. 
+// Scans for SSIDs, if preset SSID is found, attempt to connect, 
+// else prints the failed connection attempt. 
 void _TS_RADIO::wifi_connect()
 {
   if (!this->wifiInitialized)
@@ -54,6 +56,7 @@ void _TS_RADIO::wifi_connect()
       //Attempt to connect to 'WIFI_SSID', prints name of connected WIFI. 
       WiFi.begin(WIFI_SSID, WIFI_PASS);
       //sleep(TS_SleepMode2::Task2, 100);
+      // 2 second delay buffer to allow WiFi to connect 
       delay(2000);
       if (WiFi.status() != WL_CONNECTED) 
       {
@@ -73,6 +76,7 @@ void _TS_RADIO::wifi_connect()
   }
 }
 
+// disconnects from WIFI 
 void _TS_RADIO::wifi_disconnect()
 {
   WiFi.disconnect();
