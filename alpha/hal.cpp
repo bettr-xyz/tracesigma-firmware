@@ -16,6 +16,7 @@
 #elif HAL_M5STACK
 
 // #include <M5Stack.h>
+
 #endif
 
 #define CONFIG_ESP_CONSOLE_UART_NUM 0
@@ -32,7 +33,6 @@ void _TS_HAL::begin()
 {
   this->uart_init();
   this->bleInitialized = false;
-  this->wifiInitialized = false;
   halMutex = xSemaphoreCreateMutex();
 
   // init ble before rng
