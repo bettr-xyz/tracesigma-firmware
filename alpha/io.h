@@ -13,11 +13,11 @@ enum TS_ButtonState
   Long,
 };
 
-class IOButton
+class TS_IOButton
 {
   public:
-    IOButton(uint8_t reqPin, TS_ButtonState(*f)());
-    ~IOButton();
+    TS_IOButton(uint8_t reqPin, TS_ButtonState(*f)());
+    ~TS_IOButton();
 
     void IRAM_ATTR isr();
     TS_ButtonState get_state();

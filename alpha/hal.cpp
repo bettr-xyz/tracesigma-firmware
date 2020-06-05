@@ -221,20 +221,24 @@ void _TS_HAL::led_set(TS_Led led, bool enable)
 #endif
 }
 
-TS_ButtonState handleGPIOButton()
+TS_ButtonState btn_handle_gpio()
 {
   return TS_ButtonState::Short;
 }
 
-TS_ButtonState handlePowerButton()
+TS_ButtonState btn_handle_power()
 {
-  TS_ButtonState state = TS_ButtonState::NotPressed;
+  TS_ButtonState state = TS_ButtonState::Short;
+
   #ifdef HAL_M5STICK_C
   ENTER_CRITICAL;
   uint8_t readBtn = M5.Axp.GetBtnPress();
   EXIT_CRITICAL;
   switch (readBtn)
   {
+    case 0x00:
+      state = TS_ButtonState::NotPressed;
+      break;
     case 0x01:
       state = TS_ButtonState::Long;
       break;
@@ -249,9 +253,9 @@ TS_ButtonState handlePowerButton()
 
 void _TS_HAL::btn_init()
 {
-  this->buttonA = new IOButton(BUTTONA, handleGPIOButton);
-  this->buttonB = new IOButton(BUTTONB, handleGPIOButton);
-  this->buttonP = new IOButton(BUTTONP, handlePowerButton); 
+  this->buttonA = new TS_IOButton(BUTTONA, btn_handle_gpio);
+  this->buttonB = new TS_IOButton(BUTTONB, btn_handle_gpio);
+  this->buttonP = new TS_IOButton(BUTTONP, btn_handle_power); 
 
   #ifdef HAL_M5STICK_C
   // To read interrupts from AXP192

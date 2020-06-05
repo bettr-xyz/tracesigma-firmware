@@ -165,9 +165,9 @@ class _TS_HAL
     BLEServer*      pBLEServer;
     BLEAdvertising* pBLEAdvertiser;
 
-    IOButton* buttonA;
-    IOButton* buttonB;
-    IOButton* buttonP;
+    TS_IOButton* buttonA;
+    TS_IOButton* buttonB;
+    TS_IOButton* buttonP;
 
 };
 
