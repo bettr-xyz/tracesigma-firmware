@@ -4,12 +4,21 @@
 // Lower level library include decisions go here
 
 #ifdef HAL_M5STICK_C
+
 #include <M5StickC.h>
 #include "AXP192.h"
+#include "driver/uart.h"
+
+#define BUTTONP 35
+#define BUTTONA 37
+#define BUTTONB 39
 
 #elif HAL_M5STACK
+
 // #include <M5Stack.h>
 #endif
+
+#define CONFIG_ESP_CONSOLE_UART_NUM 0
 
 #define ENTER_CRITICAL  xSemaphoreTake(halMutex, portMAX_DELAY)
 #define EXIT_CRITICAL   xSemaphoreGive(halMutex)
@@ -21,7 +30,7 @@ _TS_HAL::_TS_HAL() {}
 
 void _TS_HAL::begin()
 {
-  log_init();
+  this->uart_init();
   this->bleInitialized = false;
   this->wifiInitialized = false;
   halMutex = xSemaphoreCreateMutex();
@@ -30,9 +39,14 @@ void _TS_HAL::begin()
   BLEDevice::init(DEVICE_NAME);
   this->random_seed();
 
+  // init buttons
+  btn_init();
+
 #ifdef HAL_M5STICK_C
   ENTER_CRITICAL;
-  M5.begin();
+  
+  // don't enable serial by default
+  M5.begin(true, true, false);
 
   //
   // Configure power options
@@ -40,7 +54,10 @@ void _TS_HAL::begin()
   M5.Axp.SetChargeCurrent(CURRENT_100MA);  // Default is 100mA
   M5.Axp.SetChargeVoltage(VOLTAGE_4150MV); // Default is 4200mV
   M5.Axp.SetAdcRate(ADC_RATE_025HZ);       // Default sample rate is 200Hz
-  
+  M5.Axp.SetVOff(VOLTAGE_OFF_3200MV);      // Default is 3000mV
+
+
+  // Default screen options
   M5.Lcd.setRotation(3);
   M5.Lcd.fillScreen(BLACK);
   M5.Lcd.setTextSize(1);
@@ -212,12 +229,84 @@ void _TS_HAL::led_set(TS_Led led, bool enable)
 #endif
 }
 
-bool _TS_HAL::btn_a_get()
+TS_ButtonState btn_handle_gpio()
 {
-#ifdef HAL_M5STICK_C
-  return M5.BtnA.read() == 1;
-#endif
+  return TS_ButtonState::Short;
 }
+
+TS_ButtonState btn_handle_power()
+{
+  TS_ButtonState state = TS_ButtonState::Short;
+
+  #ifdef HAL_M5STICK_C
+  ENTER_CRITICAL;
+  uint8_t readBtn = M5.Axp.GetBtnPress();
+  EXIT_CRITICAL;
+  switch (readBtn)
+  {
+    case 0x00:
+      state = TS_ButtonState::NotPressed;
+      break;
+    case 0x01:
+      state = TS_ButtonState::Long;
+      break;
+    case 0x02:
+      state = TS_ButtonState::Short;
+      break;
+  }
+  #endif
+
+  return state;
+}
+
+void _TS_HAL::btn_init()
+{
+  this->buttonA = new TS_IOButton(BUTTONA, btn_handle_gpio);
+  this->buttonB = new TS_IOButton(BUTTONB, btn_handle_gpio);
+  this->buttonP = new TS_IOButton(BUTTONP, btn_handle_power); 
+
+  #ifdef HAL_M5STICK_C
+  // To read interrupts from AXP192
+  M5.MPU6886.setIntActiveLow();
+  M5.Axp.ClearIRQ();
+  #endif
+}
+
+TS_ButtonState _TS_HAL::btn_a_get()
+{
+  return this->buttonA->get_state();
+}
+
+TS_ButtonState _TS_HAL::btn_b_get()
+{
+  return this->buttonB->get_state();
+}
+
+TS_ButtonState _TS_HAL::btn_power_get()
+{
+  return this->buttonP->get_state();
+}
+
+void _TS_HAL::uart_init()
+{
+  /* Configure UART. Note that REF_TICK is used so that the baud rate remains
+   * correct while APB frequency is changing in light sleep mode.
+   */
+  uart_config_t uart_config;
+  uart_config.baud_rate     = 115200;
+  uart_config.data_bits     = UART_DATA_8_BITS;
+  uart_config.parity        = UART_PARITY_DISABLE;
+  uart_config.stop_bits     = UART_STOP_BITS_1;
+  uart_config.use_ref_tick  = true;
+  uart_config.flow_ctrl     = UART_HW_FLOWCTRL_DISABLE;
+  uart_config.rx_flow_ctrl_thresh = 0;
+  
+  ESP_ERROR_CHECK( uart_param_config((uart_port_t)CONFIG_ESP_CONSOLE_UART_NUM, &uart_config) );
+
+  /* Install UART driver for interrupt-driven reads and writes */
+  ESP_ERROR_CHECK( uart_driver_install((uart_port_t)CONFIG_ESP_CONSOLE_UART_NUM, 256, 0, 0, NULL, 0) );
+}
+
 
 
 //
@@ -312,16 +401,32 @@ void _TS_HAL::power_set_mic(bool enabled)
   EXIT_CRITICAL;
 }
 
+uint8_t _TS_HAL::power_get_batt_level()
+{
+  long level;
+#ifdef HAL_M5STICK_C
+  ENTER_CRITICAL;
+  level = M5.Axp.GetVbatData();
+  EXIT_CRITICAL;
+  level = map(level * 1.1, 3100, 4000, 0, 100);
+#endif
+  return constrain(level, 0, 100);
+}
+
+bool _TS_HAL::power_is_charging()
+{
+  uint8_t is_charging;
+  ENTER_CRITICAL;
+#ifdef HAL_M5STICK_C
+  is_charging = M5.Axp.GetBatteryChargingStatus() & (1 << 6);
+#endif
+  EXIT_CRITICAL;
+  return is_charging;
+}
+
 //
 // Common logging functions
 //
-
-void _TS_HAL::log_init()
-{
-#ifdef HAL_SERIAL_LOG
-  Serial.begin(115200);
-#endif
-}
 
 
 //

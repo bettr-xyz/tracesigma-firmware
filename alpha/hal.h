@@ -13,6 +13,7 @@
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
+#include "io.h"
 
 //
 // Platform-specific definitions
@@ -102,7 +103,12 @@ class _TS_HAL
     // Misc IO
     //
     void led_set(TS_Led, bool);
-    bool btn_a_get();
+    void btn_init();
+    TS_ButtonState btn_a_get();
+    TS_ButtonState btn_b_get();
+    TS_ButtonState btn_power_get();
+
+    void uart_init();
 
 
     //
@@ -120,12 +126,14 @@ class _TS_HAL
     void power_off();
     void reset();
     void power_set_mic(bool);
+    uint8_t power_get_batt_level();
+    bool power_is_charging();
+
 
     
     //
     // Common logging functions
     //
-    void log_init();
 
     // Logs a line, similar to println
     template<typename T> inline void log(T val)
@@ -156,6 +164,11 @@ class _TS_HAL
     BLEScan*        pBLEScan;
     BLEServer*      pBLEServer;
     BLEAdvertising* pBLEAdvertiser;
+
+    TS_IOButton* buttonA;
+    TS_IOButton* buttonB;
+    TS_IOButton* buttonP;
+
 };
 
 extern _TS_HAL TS_HAL;
