@@ -8,7 +8,7 @@
 #include "AXP192.h"
 
 #elif HAL_M5STACK
-#include <M5Stack.h>
+// #include <M5Stack.h>
 #endif
 
 #define ENTER_CRITICAL  xSemaphoreTake(halMutex, portMAX_DELAY)
