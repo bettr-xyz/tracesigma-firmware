@@ -29,6 +29,7 @@ class _TS_RADIO
   // WIFI 
   //
   void wifi_connect();
+  void wifi_disconnect();
 
   private:
     bool            wifiInitialized;

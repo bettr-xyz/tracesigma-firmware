@@ -10,7 +10,7 @@
 #include <WiFi.h>
 #define WIFI_SSID "Test"       // Enter your SSID here
 #define WIFI_PASS "password"    // Enter your WiFi password here
-#define SSID_DISPLAY_COUNT 3
+#define SSID_DISPLAY_COUNT 1
 #elif HAL_M5STACK
 #include <M5Stack.h>
 #endif
@@ -29,8 +29,8 @@ void _TS_RADIO::begin()
 }
 
 //
-// WIFI setup
-// 
+// Connect to WIFI
+// Scans for SSIDs, if preset SSID is found, attempt to connect, else prints the failed connection attempt. 
 void _TS_RADIO::wifi_connect()
 {
   if (!this->wifiInitialized)
@@ -38,40 +38,52 @@ void _TS_RADIO::wifi_connect()
     WiFi.mode(WIFI_STA);
     WiFi.disconnect();
     int SSID_COUNT = 0;
+    bool SSID_FOUND = false;
     SSID_COUNT = WiFi.scanNetworks();
-    if (SSID_COUNT > 3)
+    for(int i = 0; i<SSID_COUNT; i++)
     {
-    // limit maximum number of SSID networks displayed.
-      SSID_COUNT = SSID_DISPLAY_COUNT;
+      if(WiFi.SSID(i) == "Test")
+      {
+        SSID_FOUND = true; 
+        Serial.println("SSID Test is found");
+        Serial.println(WiFi.SSID(i));
+      }
     }
-    for (int i = 0; i < SSID_COUNT; ++i)
+    if (SSID_FOUND)
     {
-      //prints top 3 nearest WIFI SSIDS
-      //log(WiFi.SSID(i));
-      Serial.println(WiFi.SSID(i));
-      //sleep(TS_SleepMode2::Task2, 100);
-    }
-  
-    if (SSID_COUNT == 0)
-    {
-      //log("No WIFI Networks Found \n");
-    }
-    else
-    {
-      //Connect to, prints name of connected WIFI. 
+      //Attempt to connect to 'WIFI_SSID', prints name of connected WIFI. 
       WiFi.begin(WIFI_SSID, WIFI_PASS);
       //sleep(TS_SleepMode2::Task2, 100);
       delay(2000);
       if (WiFi.status() != WL_CONNECTED) 
       {
-
-       // log("Not Connected");
+        Serial.println("Failed to Connect to WIFI");
       }
       else if (WiFi.status() == WL_CONNECTED)
-       // log("Connected");
-        //log(WiFi.SSID());
+      {
+        Serial.println("Successfully Connected to WIFI");
         Serial.println(WiFi.SSID());
         this->wifiInitialized = true;
+      }
+    }
+    else if (!SSID_FOUND)
+    {
+      Serial.println("No WIFI Networks Available");
     }
   }
+}
+
+void _TS_RADIO::wifi_disconnect()
+{
+  WiFi.disconnect();
+  delay(1000);
+  if (WiFi.status() != WL_CONNECTED) 
+    {
+      Serial.println("Not Connected to any WIFI");
+      this->wifiInitialized = false;
+    }
+  else
+    {
+      Serial.println("Unsuccessful Disconnection from WIFI");
+    }
 }

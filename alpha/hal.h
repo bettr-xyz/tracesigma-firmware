@@ -143,11 +143,6 @@ class _TS_HAL
     #endif
     };
 
-	//
-	// WIFI 
-	//
-	void wifi_connect();
-
     //
     // Debug
     //
