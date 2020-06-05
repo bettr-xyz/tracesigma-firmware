@@ -1,6 +1,7 @@
 #include "ui.h"
 #include "hal.h"
 
+
 // Increase as UI thread uses more things
 #define THREAD_STACK_SIZE 5000
 
@@ -74,39 +75,24 @@ void _TS_UI::task(void* parameter)
     // Serial.print("UI: ");
     // Serial.println(stackHighWaterMark);
 
-    reading = TS_HAL.btn_a_get();
-
-    if (reading != lastStateBtnA)
+    if (TS_HAL.btn_a_get() == TS_ButtonState::Short) 
     {
-      lastDebounceTime = millis();
+      Serial.println("Button A pressed");
     }
 
-    timeSinceLastDebounce = (millis() - lastDebounceTime);
-
-    if (timeSinceLastDebounce > DEBOUNCE_DELAY)
+    if (TS_HAL.btn_b_get() == TS_ButtonState::Short) 
     {
-      if (reading != currStateBtnA)
-      {
-        currStateBtnA = reading;
-
-        if (currStateBtnA)
-        {
-          SavePower = !SavePower;
-          if (SavePower)
-          {
-            TS_HAL.lcd_sleep(true);
-            
-          }
-          else
-          {
-            TS_HAL.lcd_sleep(false);
-            TS_HAL.lcd_brightness(12);
-          }
-        }
-      }
+      Serial.println("Button B pressed");
     }
 
-    lastStateBtnA = reading;
+    TS_ButtonState powerButtonState = TS_HAL.btn_power_get();
+    if (powerButtonState == TS_ButtonState::Short) 
+    {
+      Serial.println("Power button short press");
+    } else if (powerButtonState == TS_ButtonState::Long) 
+    {
+      Serial.println("Power button long press");
+    }
 
     TS_HAL.sleep(TS_SleepMode::Task, 250);
   }

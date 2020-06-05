@@ -9,6 +9,10 @@
 #include "AXP192.h"
 #include "driver/uart.h"
 
+#define BUTTONP 35
+#define BUTTONA 37
+#define BUTTONB 39
+
 #elif HAL_M5STACK
 
 // #include <M5Stack.h>
@@ -34,6 +38,9 @@ void _TS_HAL::begin()
   // init ble before rng
   BLEDevice::init(DEVICE_NAME);
   this->random_seed();
+
+  // init buttons
+  btn_init();
 
 #ifdef HAL_M5STICK_C
   ENTER_CRITICAL;
@@ -223,11 +230,62 @@ void _TS_HAL::led_set(TS_Led led, bool enable)
 #endif
 }
 
-bool _TS_HAL::btn_a_get()
+TS_ButtonState btn_handle_gpio()
 {
-#ifdef HAL_M5STICK_C
-  return M5.BtnA.read() == 1;
-#endif
+  return TS_ButtonState::Short;
+}
+
+TS_ButtonState btn_handle_power()
+{
+  TS_ButtonState state = TS_ButtonState::Short;
+
+  #ifdef HAL_M5STICK_C
+  ENTER_CRITICAL;
+  uint8_t readBtn = M5.Axp.GetBtnPress();
+  EXIT_CRITICAL;
+  switch (readBtn)
+  {
+    case 0x00:
+      state = TS_ButtonState::NotPressed;
+      break;
+    case 0x01:
+      state = TS_ButtonState::Long;
+      break;
+    case 0x02:
+      state = TS_ButtonState::Short;
+      break;
+  }
+  #endif
+
+  return state;
+}
+
+void _TS_HAL::btn_init()
+{
+  this->buttonA = new TS_IOButton(BUTTONA, btn_handle_gpio);
+  this->buttonB = new TS_IOButton(BUTTONB, btn_handle_gpio);
+  this->buttonP = new TS_IOButton(BUTTONP, btn_handle_power); 
+
+  #ifdef HAL_M5STICK_C
+  // To read interrupts from AXP192
+  M5.MPU6886.setIntActiveLow();
+  M5.Axp.clearIRQ();
+  #endif
+}
+
+TS_ButtonState _TS_HAL::btn_a_get()
+{
+  return this->buttonA->get_state();
+}
+
+TS_ButtonState _TS_HAL::btn_b_get()
+{
+  return this->buttonB->get_state();
+}
+
+TS_ButtonState _TS_HAL::btn_power_get()
+{
+  return this->buttonP->get_state();
 }
 
 void _TS_HAL::uart_init()
