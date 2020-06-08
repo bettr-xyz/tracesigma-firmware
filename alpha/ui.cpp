@@ -79,8 +79,13 @@ void _TS_UI::task(void* parameter) {
   TS_HAL.lcd_printf("ALPHA TEST");
 
   while(true) {
+<<<<<<< HEAD
     clickA = this->read_button(TS_HAL.btn_a_get() == TS_ButtonState::Short, btnA);
     clickB = this->read_button(TS_HAL.btn_b_get() == TS_ButtonState::Short, btnB);
+=======
+    clickA = this->read_button(TS_HAL.btn_a_get(), btnA);
+    clickB = this->read_button(TS_HAL.btn_b_get(), btnB);
+>>>>>>> 390212452988849c5b1123a2fc958cc67de6e98c
 
     if (clickA) {
       if (selected == cursor) {
@@ -103,6 +108,7 @@ void _TS_UI::task(void* parameter) {
         selected = -1;
       }
     }
+<<<<<<< HEAD
 
     bool hasUpdate = clickA || clickB;
 
@@ -168,6 +174,51 @@ void _TS_UI::task(void* parameter) {
       Serial.println("Power button long press");
     }
 
+=======
+
+    bool hasUpdate = clickA || clickB;
+
+    if (hasUpdate) {
+      if (millis() - savePowerStart < MIN_SLEEP_DURATION) {
+        continue;
+      }
+      if (savePowerStart) {
+        savePowerStart = 0;
+        selected = -1;
+        TS_HAL.lcd_sleep(false);
+        TS_HAL.lcd_brightness(brightness);
+      }
+
+      TS_DateTime datetime;
+      TS_HAL.rtc_get(datetime);
+
+      TS_HAL.lcd_cursor(0, 15);
+      // TODO: Does not work with F()
+      TS_HAL.lcd_printf("%04d-%02d-%02d ", datetime.year, datetime.month, datetime.day);
+      TS_HAL.lcd_printf("%02d:%02d:%02d\n", datetime.hour, datetime.minute, datetime.second);
+
+      for (int i = 0; i < 3; i++) {
+        if (selected == i) {
+          TS_HAL.lcd_printf(" [%s]  \n", options[i]);
+        } else if (cursor == i) {
+          TS_HAL.lcd_printf("> %s   \n", options[i]);
+        } else {
+          TS_HAL.lcd_printf("  %s   \n", options[i]);
+        }
+      }
+
+      stackHighWaterMark = uxTaskGetStackHighWaterMark(NULL);
+      Serial.print("UI: ");
+      Serial.println(stackHighWaterMark);
+
+      // Select option 3 to sleep.
+      if (selected == 2) {
+        TS_HAL.lcd_sleep(true);
+        savePowerStart = millis();
+      }
+    }
+
+>>>>>>> 390212452988849c5b1123a2fc958cc67de6e98c
     TS_HAL.sleep(TS_SleepMode::Task, 20);
   }
 }
