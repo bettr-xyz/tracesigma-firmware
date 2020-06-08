@@ -60,6 +60,9 @@ void _TS_UI::task(void* parameter) {
   button btnB;
   bool clickB = 0;
 
+  button btnP;
+  bool clickP = 0;
+
   int cursor = 0;
   int selected = -1;
 
@@ -75,12 +78,10 @@ void _TS_UI::task(void* parameter) {
   TS_HAL.lcd_sleep(false);
   TS_HAL.lcd_brightness(brightness);
 
-  TS_HAL.lcd_cursor(40, 0);
-  TS_HAL.lcd_printf("ALPHA TEST");
-
   while(true) {
-    clickA = this->read_button(TS_HAL.btn_a_get() == TS_ButtonState::Short, btnA);
-    clickB = this->read_button(TS_HAL.btn_b_get() == TS_ButtonState::Short, btnB);
+    clickA = this->read_button(TS_HAL.btn_a_get() != TS_ButtonState::NotPressed, btnA);
+    clickB = this->read_button(TS_HAL.btn_b_get() != TS_ButtonState::NotPressed, btnB);
+    clickP = this->read_button(TS_HAL.btn_power_get() != TS_ButtonState::NotPressed, btnP);
 
     if (clickA) {
       if (selected == cursor) {
@@ -90,21 +91,31 @@ void _TS_UI::task(void* parameter) {
       }
     }
     if (selected == 0) {
-      if (clickB) {
         options[0][brightness / 20 + 11] = '-';
+      if (clickB) {
         brightness %= 100;
         brightness += 20;
-        options[0][brightness / 20 + 11] = '|';
-        TS_HAL.lcd_brightness(brightness);
       }
+      if (clickP) {
+        brightness += 60;
+        brightness %= 100;
+        brightness += 20;
+      }
+      options[0][brightness / 20 + 11] = '|';
+      TS_HAL.lcd_brightness(brightness);
     } else {
       if (clickB) {
         ++cursor %= 3;
         selected = -1;
       }
+      if (clickP) {
+        cursor += 2;
+        cursor %= 3;
+        selected = -1;
+      }
     }
 
-    bool hasUpdate = clickA || clickB;
+    bool hasUpdate = clickA || clickB || clickP;
 
     if (hasUpdate) {
       if (millis() - savePowerStart < MIN_SLEEP_DURATION) {
@@ -120,18 +131,17 @@ void _TS_UI::task(void* parameter) {
       TS_DateTime datetime;
       TS_HAL.rtc_get(datetime);
 
-      TS_HAL.lcd_cursor(0, 15);
+      TS_HAL.lcd_cursor(0, 0);
       // TODO: Does not work with F()
 
       TS_HAL.lcd_printf("%04d-%02d-%02d ", datetime.year, datetime.month, datetime.day);
       TS_HAL.lcd_printf("%02d:%02d:%02d\n", datetime.hour, datetime.minute, datetime.second);
-      TS_HAL.lcd_printf("Battery: %d%%  ", TS_HAL.power_get_batt_level(), NULL, NULL);
+      TS_HAL.lcd_printf("Battery: %d%%", TS_HAL.power_get_batt_level());
       if (TS_HAL.power_is_charging()) {
-        TS_HAL.lcd_printf("Status: Charging    ");
-      } else {
-        TS_HAL.lcd_printf("Status: Not Charging");
+        TS_HAL.lcd_printf(", Charging");
       }
-
+      TS_HAL.lcd_printf("\n");
+      
       for (int i = 0; i < 3; i++) {
         if (selected == i) {
           TS_HAL.lcd_printf(" [%s]  \n", options[i]);
@@ -164,8 +174,12 @@ void _TS_UI::task(void* parameter) {
     TS_ButtonState powerButtonState = TS_HAL.btn_power_get();
     if (powerButtonState == TS_ButtonState::Short) {
       Serial.println("Power button short press");
+      TS_HAL.lcd_cursor(0, 0);
+      TS_HAL.lcd_printf("Power short");
     } else if (powerButtonState == TS_ButtonState::Long) {
       Serial.println("Power button long press");
+      TS_HAL.lcd_cursor(0, 0);
+      TS_HAL.lcd_printf("Power long");
     }
 
     TS_HAL.sleep(TS_SleepMode::Task, 20);
