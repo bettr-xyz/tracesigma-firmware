@@ -1,5 +1,6 @@
 #include "ui.h"
 #include "hal.h"
+#include "fsm.h"
 
 
 // Increase as UI thread uses more things
@@ -62,18 +63,27 @@ void _TS_UI::task(void* parameter)
       // TODO: does not work with F()
       TS_HAL.lcd_printf("Date: %04d-%02d-%02d\n",     datetime.year, datetime.month, datetime.day);
       TS_HAL.lcd_printf("Time: %02d : %02d : %02d\n", datetime.hour, datetime.minute, datetime.second);
-      TS_HAL.lcd_printf("Battery: %d%%  \n", TS_HAL.power_get_batt_level(), NULL, NULL);
+//      TS_HAL.lcd_printf("Battery: %d%%  \n", TS_HAL.power_get_batt_level(), NULL, NULL);
       if (TS_HAL.power_is_charging()) 
       {
-        TS_HAL.lcd_printf("Status: Charging    ");
+        TS_HAL.lcd_printf("Status: Charging    \n");
       } else {
-        TS_HAL.lcd_printf("Status: Not Charging");
+        TS_HAL.lcd_printf("Status: Not Charging\n");
       }
+
+      if (TS_FSM.current_state == TS_PowerState::LOW_POWER) 
+      {
+        TS_HAL.lcd_printf("State: Low Power \n");
+      } else if (TS_FSM.current_state == TS_PowerState::HIGH_POWER)
+      {
+        TS_HAL.lcd_printf("State: High Power\n");
+      }
+
     }
 
-    // stackHighWaterMark = uxTaskGetStackHighWaterMark(NULL);
-    // Serial.print("UI: ");
-    // Serial.println(stackHighWaterMark);
+//    stackHighWaterMark = uxTaskGetStackHighWaterMark(NULL);
+//    Serial.print("UI: ");
+//    Serial.println(stackHighWaterMark);
 
     if (TS_HAL.btn_a_get() == TS_ButtonState::Short) 
     {
@@ -88,12 +98,12 @@ void _TS_UI::task(void* parameter)
     TS_ButtonState powerButtonState = TS_HAL.btn_power_get();
     if (powerButtonState == TS_ButtonState::Short) 
     {
-      Serial.println("Power button short press");
+      Serial.println("Power button short press");  
     } else if (powerButtonState == TS_ButtonState::Long) 
     {
       Serial.println("Power button long press");
     }
-
+    
     TS_HAL.sleep(TS_SleepMode::Task, 250);
   }
 }

@@ -1,6 +1,7 @@
 #include "cleanbox.h"
 #include "hal.h"
 #include "ui.h"
+#include "fsm.h"
 #include "opentracev2.h"
 #include "serial_cmd.h"
 
@@ -19,6 +20,8 @@ void setup() {
 
   OT_ProtocolV2.begin();
 
+  TS_FSM.init();
+  
   // This starts a new task
   TS_UI.begin();
 
@@ -31,6 +34,7 @@ int skips = 0;
 
 void loop() {
   TS_HAL.update();
+  TS_FSM.update();
 
   // blink once a second
   TS_HAL.led_set(TS_Led::Red, true);
