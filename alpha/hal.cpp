@@ -338,6 +338,7 @@ void _TS_HAL::btn_init()
   #ifdef HAL_M5STICK_C
   // To read interrupts from AXP192
   M5.MPU6886.setIntActiveLow();
+  M5.I2C.writeByte(0x34, 0x42, 0x03);
   M5.Axp.ClearIRQ();
   #endif
 }

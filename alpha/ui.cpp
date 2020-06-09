@@ -15,11 +15,13 @@ _TS_UI TS_UI;
 _TS_UI::_TS_UI() {}
 
 // Static function to call instance method
-void _TS_UI::staticTask(void* parameter) {
+void _TS_UI::staticTask(void* parameter)
+{
   TS_UI.task(parameter);
 }
 
-void _TS_UI::begin() {
+void _TS_UI::begin()
+{
   // UI thread should run really fast
   xTaskCreatePinnedToCore(
     _TS_UI::staticTask, // thread fn
@@ -31,7 +33,8 @@ void _TS_UI::begin() {
     1);                 // core
 }
 
-bool _TS_UI::read_button(bool reading, button& btn) {
+bool _TS_UI::read_button(bool reading, button& btn)
+{
   unsigned long now = millis();
   if (btn.down) {
     if (reading && now > btn.nextClick) {
@@ -50,7 +53,8 @@ bool _TS_UI::read_button(bool reading, button& btn) {
   return 0;
 }
 
-void _TS_UI::task(void* parameter) {
+void _TS_UI::task(void* parameter)
+{
   UBaseType_t stackHighWaterMark;
   unsigned long savePowerStart = 0;
 
@@ -66,7 +70,8 @@ void _TS_UI::task(void* parameter) {
   int cursor = 0;
   int selected = -1;
 
-  char options[][21] = {
+  char options[][21] =
+  {
     " Brightness |---- ",
     " Placeholder ",
     " Sleep",
@@ -78,37 +83,47 @@ void _TS_UI::task(void* parameter) {
   TS_HAL.lcd_sleep(false);
   TS_HAL.lcd_brightness(brightness);
 
-  while(true) {
+  while(true)
+  {
     clickA = this->read_button(TS_HAL.btn_a_get() != TS_ButtonState::NotPressed, btnA);
     clickB = this->read_button(TS_HAL.btn_b_get() != TS_ButtonState::NotPressed, btnB);
     clickP = this->read_button(TS_HAL.btn_power_get() != TS_ButtonState::NotPressed, btnP);
 
-    if (clickA) {
-      if (selected == cursor) {
+    if (clickA)
+    {
+      if (selected == cursor)
+      {
         selected = -1;
       } else {
         selected = cursor;
       }
     }
-    if (selected == 0) {
+    if (selected == 0)
+    {
         options[0][brightness / 20 + 11] = '-';
-      if (clickB) {
+      if (clickB)
+      {
         brightness %= 100;
         brightness += 20;
       }
-      if (clickP) {
+      if (clickP)
+      {
         brightness += 60;
         brightness %= 100;
         brightness += 20;
       }
       options[0][brightness / 20 + 11] = '|';
       TS_HAL.lcd_brightness(brightness);
-    } else {
-      if (clickB) {
+    }
+    else
+    {
+      if (clickB)
+      {
         ++cursor %= 3;
         selected = -1;
       }
-      if (clickP) {
+      if (clickP)
+      {
         cursor += 2;
         cursor %= 3;
         selected = -1;
@@ -117,11 +132,14 @@ void _TS_UI::task(void* parameter) {
 
     bool hasUpdate = clickA || clickB || clickP;
 
-    if (hasUpdate) {
-      if (millis() - savePowerStart < MIN_SLEEP_DURATION) {
+    if (hasUpdate)
+    {
+      if (millis() - savePowerStart < MIN_SLEEP_DURATION)
+      {
         continue;
       }
-      if (savePowerStart) {
+      if (savePowerStart)
+      {
         savePowerStart = 0;
         selected = -1;
         TS_HAL.lcd_sleep(false);
@@ -137,17 +155,24 @@ void _TS_UI::task(void* parameter) {
       TS_HAL.lcd_printf("%04d-%02d-%02d ", datetime.year, datetime.month, datetime.day);
       TS_HAL.lcd_printf("%02d:%02d:%02d\n", datetime.hour, datetime.minute, datetime.second);
       TS_HAL.lcd_printf("Battery: %d%%", TS_HAL.power_get_batt_level());
-      if (TS_HAL.power_is_charging()) {
+      if (TS_HAL.power_is_charging())
+      {
         TS_HAL.lcd_printf(", Charging");
       }
       TS_HAL.lcd_printf("\n");
       
-      for (int i = 0; i < 3; i++) {
-        if (selected == i) {
+      for (int i = 0; i < 3; i++)
+      {
+        if (selected == i)
+        {
           TS_HAL.lcd_printf(" [%s]  \n", options[i]);
-        } else if (cursor == i) {
+        }
+        else if (cursor == i)
+        {
           TS_HAL.lcd_printf("> %s   \n", options[i]);
-        } else {
+        }
+        else
+        {
           TS_HAL.lcd_printf("  %s   \n", options[i]);
         }
       }
@@ -157,26 +182,32 @@ void _TS_UI::task(void* parameter) {
       Serial.println(stackHighWaterMark);
 
       // Select option 3 to sleep.
-      if (selected == 2) {
+      if (selected == 2)
+      {
         TS_HAL.lcd_sleep(true);
         savePowerStart = millis();
       }
     }
 
-    if (TS_HAL.btn_a_get() == TS_ButtonState::Short) {
+    if (TS_HAL.btn_a_get() == TS_ButtonState::Short)
+    {
       Serial.println("Button A pressed");
     }
 
-    if (TS_HAL.btn_b_get() == TS_ButtonState::Short) {
+    if (TS_HAL.btn_b_get() == TS_ButtonState::Short)
+    {
       Serial.println("Button B pressed");
     }
 
     TS_ButtonState powerButtonState = TS_HAL.btn_power_get();
-    if (powerButtonState == TS_ButtonState::Short) {
+    if (powerButtonState == TS_ButtonState::Short)
+    {
       Serial.println("Power button short press");
       TS_HAL.lcd_cursor(0, 0);
       TS_HAL.lcd_printf("Power short");
-    } else if (powerButtonState == TS_ButtonState::Long) {
+    }
+    else if (powerButtonState == TS_ButtonState::Long)
+    {
       Serial.println("Power button long press");
       TS_HAL.lcd_cursor(0, 0);
       TS_HAL.lcd_printf("Power long");
