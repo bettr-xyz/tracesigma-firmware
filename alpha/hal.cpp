@@ -489,8 +489,7 @@ bool _TS_HAL::power_is_charging()
   uint8_t is_charging;
   ENTER_CRITICAL;
 #ifdef HAL_M5STICK_C
-//  is_charging = M5.Axp.GetBatteryChargingStatus() & (1 << 6);
-  is_charging = M5.Axp.GetInputPowerStatus() & (1 << 2);
+  is_charging = M5.Axp.GetBatteryChargingStatus() & (1 << 6);
 #endif
   EXIT_CRITICAL;
   return is_charging;
