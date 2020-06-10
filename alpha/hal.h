@@ -87,8 +87,19 @@ class _TS_HAL
 
     // TODO: for some reason templates aren't working with .ino
     void lcd_printf(const char*);
+    void lcd_printf(const char*, const char*);
+    void lcd_printf(const char*, int);
     void lcd_printf(const char*, int, int, int);
-    
+
+    // proxy display calls
+    void lcd_qrcode(const char *string, uint16_t x = 5, uint16_t y = 5, uint8_t width = 70, uint8_t version = 7);
+    inline void lcd_qrcode(const String &string, uint16_t x = 5, uint16_t y = 5, uint8_t width = 70, uint8_t version = 7);
+    void lcd_drawbitmap(int16_t x0, int16_t y0, int16_t w, int16_t h, const uint16_t *data);
+    void lcd_drawbitmap(int16_t x0, int16_t y0, int16_t w, int16_t h, const uint8_t *data);
+    inline void lcd_drawbitmap(int16_t x0, int16_t y0, int16_t w, int16_t h, uint16_t *data);
+    inline void lcd_drawbitmap(int16_t x0, int16_t y0, int16_t w, int16_t h, uint8_t *data);
+    void lcd_drawbitmap(int16_t x0, int16_t y0, int16_t w, int16_t h, const uint16_t *data, uint16_t transparent);
+
 
 
     //
