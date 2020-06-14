@@ -1,5 +1,5 @@
-#ifndef __TS_FSM__
-#define __TS_FSM__
+#ifndef __TS_POWER__
+#define __TS_POWER__
 
 #include "src\FunctionFsm\src\FunctionFSM.h"
 
@@ -9,16 +9,16 @@ enum TS_PowerState
   HIGH_POWER,
 };
 
-class _TS_FSM
+class _TS_POWER
 {
   public:
-    _TS_FSM();
+    _TS_POWER();
     
     void init();
     void update();
-    void toggleFsm();
+    void toggle_fsm();
 
-    TS_PowerState current_state;
+    TS_PowerState get_state();
 
 
   private:
@@ -39,6 +39,8 @@ class _TS_FSM
     void hp_on_exit();
     void hp_on_trans_lp();
     
+    TS_PowerState current_state;
+
   	FunctionState state_lp;
   	FunctionState state_hp;
 
@@ -49,7 +51,7 @@ class _TS_FSM
 
 };
 
-extern _TS_FSM TS_FSM;
+extern _TS_POWER TS_POWER;
 
 
 #endif

@@ -203,23 +203,25 @@ void _TS_UI::task(void* parameter)
     TS_ButtonState powerButtonState = TS_HAL.btn_power_get();
     if (powerButtonState == TS_ButtonState::Short)
     {
-      Serial.println("Power button short press");
+      log_i("Power button short press");
       TS_HAL.lcd_cursor(0, 0);
       TS_HAL.lcd_printf("Power short");
     }
     else if (powerButtonState == TS_ButtonState::Long)
     {
-      Serial.println("Power button long press");
+      log_i("Power button long press");
       TS_HAL.lcd_cursor(0, 0);
       TS_HAL.lcd_printf("Power long");
     }
 
+    // TODO: icon to show power state on ui
     // TODO: To be removed, for testing purposes only
-    if (TS_FSM.current_state == TS_PowerState::LOW_POWER) 
+    if (TS_POWER.get_state() == TS_PowerState::LOW_POWER) 
     {
       TS_HAL.lcd_cursor(0, 0);
       TS_HAL.lcd_printf("State: Low Power \n");
-    } else if (TS_FSM.current_state == TS_PowerState::HIGH_POWER)
+    } 
+    else if (TS_POWER.get_state() == TS_PowerState::HIGH_POWER)
     {
       TS_HAL.lcd_cursor(0, 0);
       TS_HAL.lcd_printf("State: High Power\n");

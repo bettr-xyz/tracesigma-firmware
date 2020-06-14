@@ -20,7 +20,7 @@ void setup() {
 
   OT_ProtocolV2.begin();
 
-  TS_FSM.init();
+  TS_POWER.init();
   
   // This starts a new task
   TS_UI.begin();
@@ -34,7 +34,7 @@ int skips = 0;
 
 void loop() {
   TS_HAL.update();
-  TS_FSM.update();
+  TS_POWER.update();
 
   // blink once a second
   TS_HAL.led_set(TS_Led::Red, true);
