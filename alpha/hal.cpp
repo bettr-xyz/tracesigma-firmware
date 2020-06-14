@@ -39,9 +39,6 @@ void _TS_HAL::begin()
   BLEDevice::init(DEVICE_NAME);
   this->random_seed();
 
-  // init buttons
-  btn_init();
-
 #ifdef HAL_M5STICK_C
   ENTER_CRITICAL;
   
@@ -64,6 +61,10 @@ void _TS_HAL::begin()
 
   // Set LED pins
   pinMode(10, OUTPUT);
+
+  // init buttons
+  btn_init();
+  
   EXIT_CRITICAL;
 #endif
 }
@@ -338,7 +339,6 @@ void _TS_HAL::btn_init()
   #ifdef HAL_M5STICK_C
   // To read interrupts from AXP192
   M5.MPU6886.setIntActiveLow();
-  M5.I2C.writeByte(0x34, 0x42, 0x03);
   M5.Axp.ClearIRQ();
   #endif
 }
