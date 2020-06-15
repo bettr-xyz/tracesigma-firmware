@@ -18,10 +18,10 @@ git clone https://github.com/bettr-xyz/tracestick-firmware.git
 ### Build Project
 
 <details>
-	<summary>Click to view sample output. </summary>
+	<summary>Click to view sample output </summary>
 
 ```
-> Executing task in folder firmware_alpha: C:\Users\User\.platformio\penv\Scripts\platformio.exe run <
+> Executing task in folder trackstick_firmware: C:\Users\User\.platformio\penv\Scripts\platformio.exe run <
 
 Processing m5stick-c (platform: espressif32; board: m5stick-c; framework: arduino) 
 ----------------------------------------------------------------------------------------------------------------------------------------------------- 
@@ -113,10 +113,10 @@ Ensure your device is connected and run `Upload and Monitor` from the `PROJECT T
 
 
 <details>
-	<summary>Click to view sample output. </summary>
+	<summary>Click to view sample output </summary>
 
 ```
-> Executing task in folder firmware_alpha: C:\Users\User\.platformio\penv\Scripts\platformio.exe run --target upload --target monitor <
+> Executing task in folder trackstick_firmware: C:\Users\User\.platformio\penv\Scripts\platformio.exe run --target upload --target monitor <
 
 
 Processing m5stick-c (platform: espressif32; board: m5stick-c; framework: arduino)
@@ -247,6 +247,18 @@ Chip info:
         cores:2
         feature:/802.11bgn/BLE/BT/Embedded-Flash:
         revision number:1
+```
+
+### Updating Libraries
+
+Simply run `Update project libraries` from the `PROJECT TASKS` dropdown to keep the dependencies up-to-date.
+
+```
+> Executing task in folder trackstick_firmware: C:\Users\User\.platformio\penv\Scripts\platformio.exe lib update <
+
+Library Storage: C:\Users\User\trackstick_firmware\.pio\libdeps\m5stick-c
+Updating ArduinoJson                     @ 6.15.2         [Up-to-date]
+Updating M5StickC                        @ 0df53b8        [Up-to-date]
 ```
 
 ### Additional References
