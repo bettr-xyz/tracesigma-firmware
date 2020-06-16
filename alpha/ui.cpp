@@ -189,30 +189,6 @@ void _TS_UI::task(void* parameter)
       }
     }
 
-    if (TS_HAL.btn_a_get() == TS_ButtonState::Short)
-    {
-      Serial.println("Button A pressed");
-    }
-
-    if (TS_HAL.btn_b_get() == TS_ButtonState::Short)
-    {
-      Serial.println("Button B pressed");
-    }
-
-    TS_ButtonState powerButtonState = TS_HAL.btn_power_get();
-    if (powerButtonState == TS_ButtonState::Short)
-    {
-      Serial.println("Power button short press");
-      TS_HAL.lcd_cursor(0, 0);
-      TS_HAL.lcd_printf("Power short");
-    }
-    else if (powerButtonState == TS_ButtonState::Long)
-    {
-      Serial.println("Power button long press");
-      TS_HAL.lcd_cursor(0, 0);
-      TS_HAL.lcd_printf("Power long");
-    }
-
     TS_HAL.sleep(TS_SleepMode::Task, 20);
   }
 }

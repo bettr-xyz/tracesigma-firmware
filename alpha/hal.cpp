@@ -300,11 +300,6 @@ void _TS_HAL::led_set(TS_Led led, bool enable)
 #endif
 }
 
-TS_ButtonState btn_handle_gpio()
-{
-  return TS_ButtonState::Short;
-}
-
 TS_ButtonState btn_handle_power()
 {
   TS_ButtonState state = TS_ButtonState::Short;
@@ -332,8 +327,8 @@ TS_ButtonState btn_handle_power()
 
 void _TS_HAL::btn_init()
 {
-  this->buttonA = new TS_IOButton(BUTTONA, btn_handle_gpio);
-  this->buttonB = new TS_IOButton(BUTTONB, btn_handle_gpio);
+  this->buttonA = new TS_IOButton(BUTTONA, nullptr);
+  this->buttonB = new TS_IOButton(BUTTONB, nullptr);
   this->buttonP = new TS_IOButton(BUTTONP, btn_handle_power); 
 
   #ifdef HAL_M5STICK_C
