@@ -1,4 +1,4 @@
-#include "fsm.h"
+#include "power.h"
 #include "hal.h"
 
 _TS_POWER TS_POWER;

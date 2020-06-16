@@ -1,7 +1,7 @@
 #include "cleanbox.h"
 #include "hal.h"
 #include "ui.h"
-#include "fsm.h"
+#include "power.h"
 #include "opentracev2.h"
 #include "serial_cmd.h"
 
