@@ -1,5 +1,6 @@
 #include "ui.h"
 #include "hal.h"
+#include "power.h"
 
 
 // Increase as UI thread uses more things

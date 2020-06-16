@@ -1,7 +1,6 @@
 #include <stdint.h>
 #include <FunctionalInterrupt.h>
 #include <Arduino.h>
-#include "hal.h"
 
 #ifndef __TS_IO__
 #define __TS_IO__
