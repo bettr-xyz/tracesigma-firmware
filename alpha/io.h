@@ -18,14 +18,20 @@ class TS_IOButton
     TS_IOButton(uint8_t reqPin, TS_ButtonState(*f)());
     ~TS_IOButton();
 
-    void IRAM_ATTR isr();
     TS_ButtonState get_state();
     bool has_interrupt();
-
+    
   private:
     const uint8_t PIN;
-    TS_ButtonState(*FUNC)();
     volatile bool irq;
+
+    void IRAM_ATTR isr();
+    void resolve_irq();
+    
+    TS_ButtonState(*FUNC)();
+    TS_ButtonState poll();
+    
+    
 };
 
 #endif

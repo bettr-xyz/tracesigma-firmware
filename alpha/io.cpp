@@ -13,6 +13,29 @@ TS_IOButton::~TS_IOButton()
   detachInterrupt(PIN);
 }
 
+//
+// Public methods
+//
+
+TS_ButtonState TS_IOButton::get_state() 
+{
+  if (has_interrupt()) 
+  {
+    resolve_irq();
+  } 
+  
+  return poll();
+}
+
+bool TS_IOButton::has_interrupt()
+{
+  return irq;
+}
+
+//
+// Private methods
+//
+
 void TS_IOButton::isr() 
 {
   portENTER_CRITICAL_ISR(&mux);
@@ -20,23 +43,28 @@ void TS_IOButton::isr()
   portEXIT_CRITICAL_ISR(&mux);
 }
 
-TS_ButtonState TS_IOButton::get_state() 
+void TS_IOButton::resolve_irq()
 {
-  if (has_interrupt()) 
-  {
     portENTER_CRITICAL_ISR(&mux);
     irq = false;
     portEXIT_CRITICAL_ISR(&mux);
-    
+}
+
+TS_ButtonState TS_IOButton::poll()
+{
+  if (FUNC) 
+  {
     return FUNC();
   } 
   else 
   {
-    return TS_ButtonState::NotPressed;
+    if (digitalRead(PIN)) 
+    {
+      return TS_ButtonState::NotPressed;
+    } 
+    else 
+    {
+      return TS_ButtonState::Short;
+    }
   }
-}
-
-bool TS_IOButton::has_interrupt()
-{
-  return irq;
 }
