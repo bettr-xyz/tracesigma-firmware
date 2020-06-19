@@ -47,8 +47,7 @@ void _TS_RADIO::wifi_connect()
       if(WiFi.SSID(i) == "Test")
       {
         SSID_FOUND = true; 
-        Serial.println("SSID Test is found");
-        Serial.println(WiFi.SSID(i));
+        log_i("SSID Test is found");
       }
     }
     if (SSID_FOUND)
@@ -60,18 +59,18 @@ void _TS_RADIO::wifi_connect()
       delay(2000);
       if (WiFi.status() != WL_CONNECTED) 
       {
-        Serial.println("Failed to Connect to WIFI");
+        log_i("Failed to Connect to WIFI");
       }
       else if (WiFi.status() == WL_CONNECTED)
       {
-        Serial.println("Successfully Connected to WIFI");
-        Serial.println(WiFi.SSID());
+        log_i("Successfully Connected to WIFI");
+        log_i("%s", WiFi.SSID());
         this->wifiInitialized = true;
       }
     }
     else if (!SSID_FOUND)
     {
-      Serial.println("No WIFI Networks Available");
+      log_i("No WIFI Networks Available");
     }
   }
 }
@@ -83,11 +82,11 @@ void _TS_RADIO::wifi_disconnect()
   delay(1000);
   if (WiFi.status() != WL_CONNECTED) 
     {
-      Serial.println("Not Connected to any WIFI");
+      log_i("Not Connected to any WIFI");
       this->wifiInitialized = false;
     }
   else
     {
-      Serial.println("Unsuccessful Disconnection from WIFI");
+      log_i("Unsuccessful Disconnection from WIFI");
     }
 }

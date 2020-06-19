@@ -28,6 +28,8 @@ void setup() {
   // Start serial command console
   TS_SerialCmd.init();
   TS_SerialCmd.begin();
+
+  TS_RADIO.begin();
 }
 
 int skips = 0;
@@ -45,8 +47,7 @@ void loop() {
   uint16_t connectedCount = OT_ProtocolV2.get_connected_count();
   uint16_t sleepDuration = TS_HAL.random_get(1000, 3000);
 
-  Serial.print(F("Devices connected: "));
-  Serial.println(connectedCount);
+  log_i("Devices connected: %d", connectedCount);
   if(connectedCount > 0) {
     TS_HAL.sleep(TS_SleepMode::Task, sleepDuration);
   } else {

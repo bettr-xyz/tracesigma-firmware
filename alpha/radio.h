@@ -19,20 +19,13 @@ class _TS_RADIO
   public:
     _TS_RADIO();
 
-    //
-    // Platform-specific functionality wrappers
-    //
-
     void begin();
 
-  //
-  // WIFI 
-  //
-  void wifi_connect();
-  void wifi_disconnect();
+	void wifi_connect();
+	void wifi_disconnect();
 
   private:
-    bool            wifiInitialized;
+    bool wifiInitialized;
 };
 
 extern _TS_RADIO TS_RADIO;
