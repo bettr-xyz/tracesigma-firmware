@@ -39,9 +39,6 @@ void _TS_HAL::begin()
   BLEDevice::init(DEVICE_NAME);
   this->random_seed();
 
-  // init buttons
-  btn_init();
-
 #ifdef HAL_M5STICK_C
   ENTER_CRITICAL;
   
@@ -64,6 +61,10 @@ void _TS_HAL::begin()
 
   // Set LED pins
   pinMode(10, OUTPUT);
+
+  // init buttons
+  btn_init();
+  
   EXIT_CRITICAL;
 #endif
 }
@@ -114,9 +115,9 @@ void _TS_HAL::lcd_brightness(uint8_t level)
 
   ENTER_CRITICAL;
 #ifdef HAL_M5STICK_C
-  // m5stickc valid levels are 7-15 for some reason
-  // level / 12 -> (0-8), +7 -> 7-15
-  M5.Axp.ScreenBreath(7 + (level / 12));
+  // m5stickc valid levels are 7-12 for some reason
+  // level / 20 -> (0-5), +7 -> 7-12
+  M5.Axp.ScreenBreath(7 + (level / 20));
 #endif
   EXIT_CRITICAL;
 }
@@ -160,11 +161,80 @@ void _TS_HAL::lcd_printf(const char* t)
   EXIT_CRITICAL;
 }
 
+void _TS_HAL::lcd_printf(const char* t, const char* a)
+{
+  ENTER_CRITICAL;
+#ifdef HAL_M5STICK_C
+  M5.Lcd.printf(t, a);
+#endif
+  EXIT_CRITICAL;
+}
+
+void _TS_HAL::lcd_printf(const char* t, int a)
+{
+  ENTER_CRITICAL;
+#ifdef HAL_M5STICK_C
+  M5.Lcd.printf(t, a);
+#endif
+  EXIT_CRITICAL;
+}
+
 void _TS_HAL::lcd_printf(const char* t, int a, int b, int c)
 {
   ENTER_CRITICAL;
 #ifdef HAL_M5STICK_C
   M5.Lcd.printf(t, a, b, c);
+#endif
+  EXIT_CRITICAL;
+}
+
+void _TS_HAL::lcd_qrcode(const char *string, uint16_t x, uint16_t y, uint8_t width, uint8_t version)
+{
+  ENTER_CRITICAL;
+#ifdef HAL_M5STICK_C
+  M5.Lcd.qrcode(string, x, y, width, version);
+#endif
+  EXIT_CRITICAL;
+}
+
+inline void _TS_HAL::lcd_qrcode(const String &string, uint16_t x, uint16_t y, uint8_t width, uint8_t version)
+{
+  lcd_qrcode(string.c_str(), x, y, width, version);
+}
+
+void _TS_HAL::lcd_drawbitmap(int16_t x0, int16_t y0, int16_t w, int16_t h, const uint16_t *data)
+{
+  ENTER_CRITICAL;
+#ifdef HAL_M5STICK_C
+  M5.Lcd.drawBitmap(x0, y0, w, h, data);
+#endif
+  EXIT_CRITICAL;
+}
+
+void _TS_HAL::lcd_drawbitmap(int16_t x0, int16_t y0, int16_t w, int16_t h, const uint8_t *data)
+{
+  ENTER_CRITICAL;
+#ifdef HAL_M5STICK_C
+  M5.Lcd.drawBitmap(x0, y0, w, h, data);
+#endif
+  EXIT_CRITICAL;
+}
+
+inline void _TS_HAL::lcd_drawbitmap(int16_t x0, int16_t y0, int16_t w, int16_t h, uint16_t *data)
+{
+  lcd_drawbitmap(x0, y0, w, h, (const uint16_t *)data);
+}
+
+inline void _TS_HAL::lcd_drawbitmap(int16_t x0, int16_t y0, int16_t w, int16_t h, uint8_t *data)
+{
+  lcd_drawbitmap(x0, y0, w, h, (const uint8_t *)data);
+}
+
+void _TS_HAL::lcd_drawbitmap(int16_t x0, int16_t y0, int16_t w, int16_t h, const uint16_t *data, uint16_t transparent)
+{
+  ENTER_CRITICAL;
+#ifdef HAL_M5STICK_C
+  M5.Lcd.drawBitmap(x0, y0, w, h, data, transparent);
 #endif
   EXIT_CRITICAL;
 }
@@ -229,11 +299,6 @@ void _TS_HAL::led_set(TS_Led led, bool enable)
 #endif
 }
 
-TS_ButtonState btn_handle_gpio()
-{
-  return TS_ButtonState::Short;
-}
-
 TS_ButtonState btn_handle_power()
 {
   TS_ButtonState state = TS_ButtonState::Short;
@@ -261,8 +326,8 @@ TS_ButtonState btn_handle_power()
 
 void _TS_HAL::btn_init()
 {
-  this->buttonA = new TS_IOButton(BUTTONA, btn_handle_gpio);
-  this->buttonB = new TS_IOButton(BUTTONB, btn_handle_gpio);
+  this->buttonA = new TS_IOButton(BUTTONA, nullptr);
+  this->buttonB = new TS_IOButton(BUTTONB, nullptr);
   this->buttonP = new TS_IOButton(BUTTONP, btn_handle_power); 
 
   #ifdef HAL_M5STICK_C
