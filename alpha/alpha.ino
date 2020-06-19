@@ -30,9 +30,9 @@ void setup() {
 
   TS_Storage.begin();
   TS_HAL.logcat("Storage free: ")
-        ->logcat(TS_Storage.get_freespace())
+        ->logcat(TS_Storage.freespace_get())
         ->logcat(" bytes, %")
-        ->log(TS_Storage.get_freespace_pct());
+        ->log(TS_Storage.freespace_get_pct());
 
   OT_ProtocolV2.begin();
 }
