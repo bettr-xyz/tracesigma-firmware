@@ -22,11 +22,12 @@ Read more about tracestick at the [main site](https://sites.google.com/view/trac
     *   Typically under: C:\\Users\\username\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\1.0.4\\libraries\\BLE\\src
     *   Contains some BLE stability fixes
 7. Install the ArduinoJson library
-![](https://lh5.googleusercontent.com/Lj7MV_dCx2dWn1493ADjNkb8Pk1erLHGXLUuhd6D_kLeao9LPQ1LXi2ddPNMnMfASiZrbHMIgiqSg7YqL2p5kPKd7mwXzH6B44d_0_VF3MOb04Lvog=w1280)
-8. **Before you upload ANY code**,  open and ensure that Arduino is set to
+    * Tools > Manage Libraries > Search for ArduinoJson > Install
+![ArduinoJson Library](https://lh5.googleusercontent.com/Lj7MV_dCx2dWn1493ADjNkb8Pk1erLHGXLUuhd6D_kLeao9LPQ1LXi2ddPNMnMfASiZrbHMIgiqSg7YqL2p5kPKd7mwXzH6B44d_0_VF3MOb04Lvog=w1280)
+1. **Before you upload ANY code**,  open and ensure that Arduino is set to
 	* Board: M5Stick-C
 	* Partition Scheme: No OTA (Large App)
-![](https://lh6.googleusercontent.com/8twGJmQMwPxEep2QhSzrkGXb7HGMwoX40Vk4IR0sq1vDJTPmg_1H-nDDq-8BtEQysjT6wW8-tKt50OzbBrZjpXiwdJDsZwkRDkXHl_VF7qaCpH4LKjw=w1280)
+![Arduino Settings](https://lh6.googleusercontent.com/8twGJmQMwPxEep2QhSzrkGXb7HGMwoX40Vk4IR0sq1vDJTPmg_1H-nDDq-8BtEQysjT6wW8-tKt50OzbBrZjpXiwdJDsZwkRDkXHl_VF7qaCpH4LKjw=w1280)
 
 ## Getting Started (PlatformIO)
 
