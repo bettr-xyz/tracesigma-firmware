@@ -81,3 +81,8 @@ void _TS_RADIO::wifi_disconnect()
       log_i("Unsuccessful Disconnection from WIFI");
     }
 }
+
+bool _TS_RADIO::wifi_is_initialized()
+{
+	return this->wifiInitialized;
+}

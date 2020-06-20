@@ -18,6 +18,8 @@ class _TS_RADIO
 	void wifi_connect();
 	void wifi_disconnect();
 
+	bool wifi_is_initialized();
+
   private:
     bool wifiInitialized;
 };
