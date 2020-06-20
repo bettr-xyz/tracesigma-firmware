@@ -13,6 +13,7 @@
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
+#include "io.h"
 
 //
 // Platform-specific definitions
@@ -100,8 +101,19 @@ class _TS_HAL
 
     // TODO: for some reason templates aren't working with .ino
     void lcd_printf(const char*);
+    void lcd_printf(const char*, const char*);
+    void lcd_printf(const char*, int);
     void lcd_printf(const char*, int, int, int);
-    
+
+    // proxy display calls
+    void lcd_qrcode(const char *string, uint16_t x = 5, uint16_t y = 5, uint8_t width = 70, uint8_t version = 7);
+    inline void lcd_qrcode(const String &string, uint16_t x = 5, uint16_t y = 5, uint8_t width = 70, uint8_t version = 7);
+    void lcd_drawbitmap(int16_t x0, int16_t y0, int16_t w, int16_t h, const uint16_t *data);
+    void lcd_drawbitmap(int16_t x0, int16_t y0, int16_t w, int16_t h, const uint8_t *data);
+    inline void lcd_drawbitmap(int16_t x0, int16_t y0, int16_t w, int16_t h, uint16_t *data);
+    inline void lcd_drawbitmap(int16_t x0, int16_t y0, int16_t w, int16_t h, uint8_t *data);
+    void lcd_drawbitmap(int16_t x0, int16_t y0, int16_t w, int16_t h, const uint16_t *data, uint16_t transparent);
+
 
 
     //
@@ -115,7 +127,13 @@ class _TS_HAL
     //
     // Misc IO
     //
-    void setLed(TS_Led, bool);
+    void led_set(TS_Led, bool);
+    void btn_init();
+    TS_ButtonState btn_a_get();
+    TS_ButtonState btn_b_get();
+    TS_ButtonState btn_power_get();
+
+    void uart_init();
 
 
     //
@@ -132,12 +150,15 @@ class _TS_HAL
     void sleep(TS_SleepMode, uint32_t);
     void power_off();
     void reset();
+    void power_set_mic(bool);
+    uint8_t power_get_batt_level();
+    bool power_is_charging();
+
 
     
     //
     // Common logging functions
     //
-    void log_init();
 
     // Logs a line, similar to println
     template<typename T> inline _TS_HAL* log(T val)
@@ -176,6 +197,11 @@ class _TS_HAL
     BLEScan*        pBLEScan;
     BLEServer*      pBLEServer;
     BLEAdvertising* pBLEAdvertiser;
+
+    TS_IOButton* buttonA;
+    TS_IOButton* buttonB;
+    TS_IOButton* buttonP;
+
 };
 
 extern _TS_HAL TS_HAL;
