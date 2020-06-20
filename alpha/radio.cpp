@@ -1,32 +1,23 @@
 #include "radio.h"
-#include "esp_pm.h"
 
 // WiFi functions, call wifi_connect() to connect to "Test" wifi, wifi_disconnect() to disconnect.
 // Prints helpful debug to console upon call. 
 
-#ifdef HAL_M5STICK_C
-#include <M5StickC.h>
-#include "AXP192.h"
-
-#include <WiFi.h>
 #define WIFI_SSID "Test"       // Enter your SSID here
 #define WIFI_PASS "password"    // Enter your WiFi password here
 #define SSID_DISPLAY_COUNT 1
-#elif HAL_M5STACK
-#include <M5Stack.h>
-#endif
 
-#define ENTER_CRITICAL  xSemaphoreTake(halMutex, portMAX_DELAY)
-#define EXIT_CRITICAL   xSemaphoreGive(halMutex)
-static SemaphoreHandle_t halMutex;
 
-// Your one and only
 _TS_RADIO TS_RADIO;
-_TS_RADIO::_TS_RADIO() {}
+
+// Ctor
+_TS_RADIO::_TS_RADIO() {
+	this->wifiInitialized = false;
+}
 
 void _TS_RADIO::begin()
 {
-  this->wifiInitialized = false;
+	wifi_connect();
 }
 
 //
