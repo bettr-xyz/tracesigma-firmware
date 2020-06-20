@@ -81,6 +81,8 @@ void _TS_RADIO::wifi_disconnect()
 
 bool _TS_RADIO::wifi_is_connected()
 {
+  this->wifiConnected = WiFi.status() == WL_CONNECTED;
+  
   return this->wifiConnected;
 }
 

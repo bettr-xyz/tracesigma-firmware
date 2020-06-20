@@ -1,7 +1,7 @@
 #include "ui.h"
 #include "hal.h"
 #include "power.h"
-
+#include "radio.h"
 
 // Increase as UI thread uses more things
 #define THREAD_STACK_SIZE 5000
@@ -74,7 +74,7 @@ void _TS_UI::task(void* parameter)
   char options[][21] =
   {
     " Brightness |---- ",
-    " Placeholder ",
+    " Network ",
     " Sleep",
   };
 
@@ -166,7 +166,15 @@ void _TS_UI::task(void* parameter)
       {
         if (selected == i)
         {
-          TS_HAL.lcd_printf(" [%s]  \n", options[i]);
+          if (i == 1) 
+          {
+            bool wifiConnected = TS_RADIO.wifi_is_connected();
+            TS_HAL.lcd_printf(" [%s]      \n", wifiConnected ? " Connected " : " Not Connected ");
+          }
+          else
+          {
+            TS_HAL.lcd_printf(" [%s]      \n", options[i]);
+          } 
         }
         else if (cursor == i)
         {
