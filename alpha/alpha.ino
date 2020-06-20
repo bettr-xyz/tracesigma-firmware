@@ -30,6 +30,11 @@ void setup() {
   TS_SerialCmd.begin();
 
   TS_RADIO.begin();
+
+  if (!TS_RADIO.wifi_is_connected()) {
+	  TS_RADIO.wifi_connect();
+  }
+
 }
 
 int skips = 0;
@@ -37,11 +42,6 @@ int skips = 0;
 void loop() {
   TS_HAL.update();
   TS_POWER.update();
-
-  // aggresively try to connect wifi
-  if (!TS_RADIO.wifi_is_initialized()) {
-	  TS_RADIO.wifi_connect();
-  }
 
   // blink once a second
   TS_HAL.led_set(TS_Led::Red, true);
