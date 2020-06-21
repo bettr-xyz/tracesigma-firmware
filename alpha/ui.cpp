@@ -1,6 +1,7 @@
 #include "ui.h"
 #include "hal.h"
 #include "power.h"
+#include "icons.h"
 
 
 // Increase as UI thread uses more things
@@ -10,10 +11,20 @@
 #define LONG_PRESS_CLICK_INTERVAL 500
 #define MIN_SLEEP_DURATION 1000
 
+#ifdef HAL_M5STICK_C
+#define TS_LCD_WIDTH 160
+#define TS_LCD_HEIGHT 80
+#endif
+
+#define TS_LCD_BORDER 5
+
+
 _TS_UI TS_UI;
 
 // Ctor
-_TS_UI::_TS_UI() {}
+_TS_UI::_TS_UI() {
+  this->batteryIconIndex = -1;
+}
 
 // Static function to call instance method
 void _TS_UI::staticTask(void* parameter)
@@ -89,6 +100,8 @@ void _TS_UI::task(void* parameter)
     clickA = this->read_button(TS_HAL.btn_a_get() != TS_ButtonState::NotPressed, btnA);
     clickB = this->read_button(TS_HAL.btn_b_get() != TS_ButtonState::NotPressed, btnB);
     clickP = this->read_button(TS_HAL.btn_power_get() != TS_ButtonState::NotPressed, btnP);
+
+    draw_battery_icon();
 
     if (clickA)
     {
@@ -191,5 +204,50 @@ void _TS_UI::task(void* parameter)
     }
 
     TS_HAL.sleep(TS_SleepMode::Task, 20);
+  }
+}
+
+void _TS_UI::draw_battery_icon()
+{
+  uint8_t batt = TS_HAL.power_get_batt_level();
+  int8_t batteryIconUpdateIndex = 0;
+  const uint16_t *iconData;
+  if (batt >= 90)
+  {
+    batteryIconUpdateIndex = 3;
+  }
+  else if (batt >= 65)
+  {
+    batteryIconUpdateIndex = 2;
+  }
+  else if (batt > 30)
+  {
+    batteryIconUpdateIndex = 1;
+  }
+
+  if (this->batteryIconIndex != batteryIconUpdateIndex)
+  {
+    this->batteryIconIndex = batteryIconUpdateIndex;
+    switch(this->batteryIconIndex) {
+      case 0:
+        iconData = icon_batt_0;
+        break;
+      case 1:
+        iconData = icon_batt_1;
+        break;
+      case 2:
+        iconData = icon_batt_2;
+        break;
+      case 3:
+        iconData = icon_batt_3;
+        break;
+    }
+    TS_HAL.lcd_drawbitmap(
+      TS_LCD_WIDTH - TS_LCD_BORDER - ICON_BATT_W,
+      TS_LCD_BORDER,
+      ICON_BATT_W,
+      ICON_BATT_H,
+      iconData
+    );
   }
 }
