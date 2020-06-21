@@ -104,6 +104,7 @@ uint32_t _TS_HAL::random_get(uint32_t min, uint32_t max)
 }
 
 
+
 //
 // LCD
 //
@@ -492,6 +493,7 @@ bool _TS_HAL::power_is_charging()
 //
 // Common logging functions
 //
+
 
 
 //

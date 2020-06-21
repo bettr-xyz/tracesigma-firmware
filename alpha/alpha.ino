@@ -15,6 +15,7 @@ bool powerSaveTest = false;
 void setup() {
   TS_HAL.begin();
   TS_HAL.ble_init();
+
   // disable power to microphone
   TS_HAL.power_set_mic(false);
 
@@ -28,7 +29,6 @@ void setup() {
   // Start serial command console
   TS_SerialCmd.init();
   TS_SerialCmd.begin();
-
 }
 
 int skips = 0;
@@ -79,6 +79,6 @@ void loop() {
   // Give some time for comms after broadcasts
   // TODO: by right should wait T time after last uncompleted handshake before going back to sleep
   TS_HAL.sleep(TS_SleepMode::Task, 100);
-  
+
   // TODO: call OT update_characteristic_cache at least once every 15 mins
 }

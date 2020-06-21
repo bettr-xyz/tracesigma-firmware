@@ -69,6 +69,7 @@ class _TS_HAL
     uint32_t random_get(uint32_t, uint32_t);
 
 
+
     //
     // LCD
     //
@@ -161,6 +162,8 @@ class _TS_HAL
       Serial.write(val);
     #endif
     };
+
+
 
     //
     // Debug
