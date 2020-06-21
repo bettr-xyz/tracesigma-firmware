@@ -127,7 +127,7 @@ void _TS_SerialCmd::serial_cmd_loop()
       } else if (err == ESP_ERR_INVALID_ARG) {
           // command was empty
       } else if (err == ESP_OK && ret != ESP_OK) {
-          printf("Command returned non-zero error code: 0x%x (%s)\n", ret, esp_err_to_name(err));
+          printf("Command returned non-zero error code: 0x%x (%s)\n", ret, esp_err_to_name(ret));
       } else if (err != ESP_OK) {
           printf("Internal error: %s\n", esp_err_to_name(err));
       }
@@ -164,6 +164,60 @@ static void register_version()
   ESP_ERROR_CHECK( esp_console_cmd_register(&cmd) );
 }
 
+static struct {
+  struct arg_lit *get;
+  struct arg_date *set;
+  struct arg_end *end;
+} clock_args;
+
+static int do_clock_cmd(int argc, char **argv)
+{
+  TS_DateTime dt;
+
+  int nerrors = arg_parse(argc, argv, (void **) &clock_args);
+  if (nerrors != 0) {
+      arg_print_errors(stderr, clock_args.end, argv[0]);
+      return ESP_ERR_INVALID_ARG;
+  }
+
+  if (clock_args.get->count == 1) {
+    TS_HAL.rtc_get(dt);
+    printf("Current datetime: %04d-%02d-%02dT%02d:%02d:%02d\n\n", dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second);
+  } else if (clock_args.set->count == 1) {
+    /* tm_year gives years since 1900 */
+    dt.year = (clock_args.set->tmval->tm_year) + 1900;
+    /* tm_mon range = [0, 11], convert to [1,12] */
+    dt.month = (clock_args.set->tmval->tm_mon) + 1;
+    dt.day = clock_args.set->tmval->tm_mday;
+    dt.hour = clock_args.set->tmval->tm_hour;
+    dt.minute = clock_args.set->tmval->tm_min;
+    dt.second = clock_args.set->tmval->tm_sec;
+    TS_HAL.rtc_set(dt);
+    printf("Success!\n\n");
+  } else {
+    printf("Type help for help\n\n");
+    return ESP_ERR_INVALID_ARG;
+  }
+
+  return ESP_OK;
+}
+
+static void register_clock_cmd()
+{
+  clock_args.get = arg_lit0("g", "get", "get datetime");
+  clock_args.set = arg_date0("s", "set", "%Y-%m-%dT%H:%M:%S", NULL, "set datetime");
+  clock_args.end = arg_end(20);
+
+  const esp_console_cmd_t cmd = {
+    .command = "clock",
+    .help = "Get or set datetime",
+    .hint = NULL,
+    .func = &do_clock_cmd,
+    .argtable = &clock_args
+  };
+  ESP_ERROR_CHECK( esp_console_cmd_register(&cmd) );
+}
+
 //
 // Register command callbacks
 // - this has to be at the end after all static functions
@@ -171,5 +225,7 @@ static void register_version()
 void _TS_SerialCmd::register_commands()
 {
   register_version();
+  register_clock_cmd();
+  esp_console_register_help_command();
 }
 
