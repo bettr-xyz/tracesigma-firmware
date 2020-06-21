@@ -15,15 +15,17 @@ class _TS_RADIO
 
     void begin();
 
-    void wifi_connect();
-    void wifi_disconnect();
-
     bool wifi_is_connected();
-
-    bool wifi_scan_networks();
+    void wifi_enable(bool);
+    void wifi_update();
 
   private:
-    bool wifiConnected;
+    void wifi_connect();
+    void wifi_disconnect();
+    bool wifi_scan_networks();
+
+    bool wifiEnabled;
+    long wifiTimerStart;
 };
 
 extern _TS_RADIO TS_RADIO;

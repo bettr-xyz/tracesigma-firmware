@@ -1,6 +1,5 @@
 #include "power.h"
 #include "hal.h"
-#include "radio.h"
 
 _TS_POWER TS_POWER;
 
@@ -56,7 +55,6 @@ void _TS_POWER::lp_on_trans_hp()
 void _TS_POWER::hp_on_enter() {
   log_i("- Enter HP -");
   current_state = TS_PowerState::HIGH_POWER;
-  TS_RADIO.wifi_connect();
 }
 
 void _TS_POWER::hp_on()

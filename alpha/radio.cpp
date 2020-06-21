@@ -11,19 +11,15 @@
 #define WIFI_PASS "password"    // Enter your WiFi password here
 #endif
 #define SSID_DISPLAY_COUNT 1
-#define MAX_TRIES 10
 
+#define WIFI_RETRY_INTERVAL 30000
 
 _TS_RADIO TS_RADIO;
 
 // Ctor
 _TS_RADIO::_TS_RADIO() {
-  this->wifiConnected = false;
-}
-
-void _TS_RADIO::begin()
-{
-  wifi_connect();
+  this->wifiEnabled = false;
+  this->wifiTimerStart = -(WIFI_RETRY_INTERVAL);
 }
 
 //
@@ -32,30 +28,11 @@ void _TS_RADIO::begin()
 // else prints the failed connection attempt. 
 void _TS_RADIO::wifi_connect()
 {
-  uint8_t tries = 0;
   if (wifi_scan_networks())
   {
-    while(!this->wifiConnected && tries < MAX_TRIES)
-    {
-      //Attempt to connect to 'WIFI_SSID', prints name of connected WIFI. 
-      WiFi.begin(WIFI_SSID, WIFI_PASS);
-      // 2 second delay buffer to allow WiFi to connect 
-      TS_HAL.sleep(TS_SleepMode::Task, 2000);
-      if (WiFi.status() == WL_CONNECTED)
-      {
-        log_i("Successfully Connected to WIFI: %s", WiFi.SSID());
-        this->wifiConnected = true;
-        return;
-      }
-
-      log_i("Wifi connect tries: %d", tries);
-
-      tries++;
-
-      TS_HAL.sleep(TS_SleepMode::Task, 200);
-    }
-
-    log_i("Wifi connect MAX_TRIES reached");
+    //Attempt to connect to 'WIFI_SSID', prints name of connected WIFI. 
+    WiFi.begin(WIFI_SSID, WIFI_PASS);
+    log_i("Connecting to WIFI: %s", WiFi.SSID());
   } 
   else 
   {
@@ -63,27 +40,14 @@ void _TS_RADIO::wifi_connect()
   }
 }
 
-// disconnects from WIFI 
 void _TS_RADIO::wifi_disconnect()
 {
   WiFi.disconnect();
-  TS_HAL.sleep(TS_SleepMode::Task, 1000);
-  if (WiFi.status() != WL_CONNECTED) 
-  {
-    log_i("Not Connected to any WIFI");
-    this->wifiConnected = false;
-  }
-  else
-  {
-    log_i("Unsuccessful Disconnection from WIFI");
-  }
 }
 
 bool _TS_RADIO::wifi_is_connected()
-{
-  this->wifiConnected = WiFi.status() == WL_CONNECTED;
-  
-  return this->wifiConnected;
+{  
+  return WiFi.status() == WL_CONNECTED;
 }
 
 // Returns true if network is available to connect
@@ -96,9 +60,46 @@ bool _TS_RADIO::wifi_scan_networks()
   {
     if(WiFi.SSID(i) == WIFI_SSID)
     {
+      log_i("Known networks are available");
       return true;
     }
   }
 
+  log_i("No known SSID found");
+
   return false;
+}
+
+void _TS_RADIO::wifi_enable(bool enable)
+{
+  this->wifiEnabled = enable;
+}
+
+void _TS_RADIO::wifi_update()
+{
+  if (this->wifiEnabled)
+  {
+    if (!wifi_is_connected())
+    {
+      if (millis() - this->wifiTimerStart > WIFI_RETRY_INTERVAL)
+      {
+        log_i("Connecting to WiFi.");
+        TS_RADIO.wifi_connect();
+        this->wifiTimerStart = millis();
+      }
+      else
+      {
+        log_i("Waiting for WiFi interval");
+      }
+    }
+  }
+  else
+  {
+    if (wifi_is_connected())
+    {
+      log_i("Disconnecting WiFi.");
+      TS_RADIO.wifi_disconnect();
+    }
+  }
+  
 }
