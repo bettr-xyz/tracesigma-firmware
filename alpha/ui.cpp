@@ -209,45 +209,58 @@ void _TS_UI::task(void* parameter)
 
 void _TS_UI::draw_battery_icon()
 {
-  uint8_t batt = TS_HAL.power_get_batt_level();
-  int8_t batteryIconUpdateIndex = 0;
-  const uint16_t *iconData;
-  if (batt >= 90)
+  if (TS_HAL.power_is_charging())
   {
-    batteryIconUpdateIndex = 3;
-  }
-  else if (batt >= 65)
-  {
-    batteryIconUpdateIndex = 2;
-  }
-  else if (batt > 30)
-  {
-    batteryIconUpdateIndex = 1;
-  }
-
-  if (this->batteryIconIndex != batteryIconUpdateIndex)
-  {
-    this->batteryIconIndex = batteryIconUpdateIndex;
-    switch(this->batteryIconIndex) {
-      case 0:
-        iconData = icon_batt_0;
-        break;
-      case 1:
-        iconData = icon_batt_1;
-        break;
-      case 2:
-        iconData = icon_batt_2;
-        break;
-      case 3:
-        iconData = icon_batt_3;
-        break;
-    }
     TS_HAL.lcd_drawbitmap(
       TS_LCD_WIDTH - TS_LCD_BORDER - ICON_BATT_W,
       TS_LCD_BORDER,
       ICON_BATT_W,
       ICON_BATT_H,
-      iconData
+      icon_batt_c
     );
+  }
+  else
+  {
+    uint8_t batt = TS_HAL.power_get_batt_level();
+    int8_t batteryIconUpdateIndex = 0;
+    const uint16_t *iconData;
+    if (batt >= 90)
+    {
+      batteryIconUpdateIndex = 3;
+    }
+    else if (batt >= 65)
+    {
+      batteryIconUpdateIndex = 2;
+    }
+    else if (batt > 30)
+    {
+      batteryIconUpdateIndex = 1;
+    }
+
+    if (this->batteryIconIndex != batteryIconUpdateIndex)
+    {
+      this->batteryIconIndex = batteryIconUpdateIndex;
+      switch(this->batteryIconIndex) {
+        case 0:
+          iconData = icon_batt_0;
+          break;
+        case 1:
+          iconData = icon_batt_1;
+          break;
+        case 2:
+          iconData = icon_batt_2;
+          break;
+        case 3:
+          iconData = icon_batt_3;
+          break;
+      }
+      TS_HAL.lcd_drawbitmap(
+        TS_LCD_WIDTH - TS_LCD_BORDER - ICON_BATT_W,
+        TS_LCD_BORDER,
+        ICON_BATT_W,
+        ICON_BATT_H,
+        iconData
+      );
+    }
   }
 }
