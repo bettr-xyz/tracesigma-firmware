@@ -61,6 +61,7 @@ void _TS_Storage::settings_load()
 void _TS_Storage::settings_save()
 {
   EEPROM.writeBytes(0, &(this->settingsRuntime), sizeof(this->settingsRuntime));
+  EEPROM.commit();
 }
 
 
