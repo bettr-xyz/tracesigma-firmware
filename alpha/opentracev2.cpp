@@ -26,10 +26,10 @@ void _OT_ProtocolV2::begin()
   this->serviceUUID = BLEUUID(OT_SERVICEID);
   this->characteristicUUID = BLEUUID(OT_CHARACTERISTICID);
 
-  TS_HAL.log("Loading TempIDs from storage");
+  log_i("Loading TempIDs from storage");
   if( TS_Storage.file_ids_readall(OT_TEMPID_MAX, tempIds) < OT_TEMPID_MAX )
   {
-    TS_HAL.log("Insufficient/error loading, creating TempIDs");
+    log_w("Insufficient/error loading, creating TempIDs");
 
     // DEBUG: temporarily fill tempIds with predictable fluff
     // - given that base64 takes up 28% more space, spending more cpu to encode/decode to save 28% of space may not be too worth it
@@ -38,13 +38,13 @@ void _OT_ProtocolV2::begin()
       this->tempIds[i] = "8Vej+n4NAutyZlS1ItKDL//RcfqWP/Tq/T/BBBUOsmAF0U+TGBqd2xcMhpfcSOyN1cSGN3znSGguodP+NQ==";
     }
 
-    TS_HAL.log("Saving TempIDs to storage");
+    log_i("Saving TempIDs to storage");
     if(TS_Storage.file_ids_writeall(OT_TEMPID_MAX, tempIds) != OT_TEMPID_MAX)
     {
-      TS_HAL.log("Error saving TempIDs");
+      log_i("Error saving TempIDs");
     }
   }
-  TS_HAL.log("Loaded TempIDs");
+  log_i("Loaded TempIDs");
 
   // DEBUG: populate characteristic cache once
   this->update_characteristic_cache();
@@ -118,9 +118,7 @@ bool _OT_ProtocolV2::scan_and_connect(uint8_t seconds, int8_t rssiCutoff)
 
     if(rssi < rssiCutoff) continue;
 
-    Serial.print(deviceAddress.toString().c_str());
-    Serial.print(" rssi: ");
-    Serial.println(rssi);
+    log_i("%s rssi: %d", deviceAddress.toString().c_str(), rssi);
 
     // We do not need a map of last-seen as this function should have long intervals between calls
     // Connect to each one and read + write iff parameters are correct
@@ -144,7 +142,7 @@ bool _OT_ProtocolV2::connect_and_exchange(BLEAdvertisedDevice &device, BLEAddres
     {
       if(stone >= 9)
       {
-        Serial.println("WARN: _OT_ProtocolV2::connect_and_exchange: bleClient still connected when deleted!");
+        log_w("_OT_ProtocolV2::connect_and_exchange: bleClient still connected when deleted!");
       }
       
       TS_HAL.sleep(TS_SleepMode::Task, 100);
@@ -168,47 +166,46 @@ bool _OT_ProtocolV2::connect_and_exchange_impl(BLEClient *bleClient, BLEAdvertis
 
   if(!bleClient->isConnected()) 
   {
-    Serial.println(F("Client connection failed"));
+    log_w("Client connection failed");
     return false;
   }
 
   pRemoteService = bleClient->getService(this->serviceUUID);
   if (pRemoteService == NULL)
   {
-    Serial.println(F("Failed to find our service UUID"));
+    log_w("Failed to find our service UUID");
     return false;
   }
 
   pRemoteCharacteristic = pRemoteService->getCharacteristic(this->characteristicUUID);
   if (pRemoteCharacteristic == NULL)
   {
-    Serial.println(F("Failed to find our characteristic UUID"));
+    log_w("Failed to find our characteristic UUID");
     return false;
   }
 
   if(!pRemoteCharacteristic->canRead() || !pRemoteCharacteristic->canWrite())
   {
-    Serial.println(F("Unable to read or write"));
+    log_w("Unable to read or write");
     return false;
   }
 
   std::string buf;
   this->prepare_central_write_request(buf, rssi);
   pRemoteCharacteristic->writeValue(buf, false);
-  Serial.print("BLE central Send: ");
-  Serial.println(buf.c_str());
+  
+  log_i("BLE central Send: %s", buf.c_str());
 
   OT_ConnectionRecord connectionRecord;
   buf = pRemoteCharacteristic->readValue();
   
   if(!this->process_central_read_request(buf, connectionRecord))
   {
-    Serial.println(F("Json parse error or read failed"));
+    log_w("Json parse error or read failed");
     return false;
   }
 
-  Serial.print("BLE central Recv: ");
-  Serial.println(buf.c_str());
+  log_i("BLE central Recv: %s", buf.c_str());
   
   // TODO: store data read into connectionRecord somewhere
 
@@ -249,12 +246,12 @@ void _OT_ProtocolV2::update_characteristic_cache()
 
 void _OT_ProtocolV2::onConnect(BLEServer* pServer)
 {
-  Serial.println("Device connected to BLE");
+  log_i("Device connected to BLE");
 }
 
 void _OT_ProtocolV2::onDisconnect(BLEServer* pServer)
 {
-  Serial.println("Device disconnected from BLE");
+  log_i("Device disconnected from BLE");
 }
 
 // Callback after data is written from writer
@@ -263,14 +260,13 @@ void _OT_ProtocolV2::onWrite(BLECharacteristic *pCharacteristic)
   std::string payload = pCharacteristic->getValue();
   if (payload.length() ==  0) return; // ignore empties
 
-  Serial.print("BLE peripheral Recv: ");
-  Serial.println(payload.c_str());
+  log_i("BLE peripheral Recv: %s", payload.c_str());
 
   OT_ConnectionRecord cr;
 
   if(!this->process_peripheral_write_request(payload, cr))
   {
-    Serial.println("Parse error or data invalid");
+    log_w("Parse error or data invalid");
   }
 
   // TODO: cumulate to flash
@@ -288,8 +284,7 @@ void _OT_ProtocolV2::onRead(BLECharacteristic* pCharacteristic)
   pCharacteristic->setValue( characteristicCache );
   xSemaphoreGive( characteristicCacheMutex );
 
-  Serial.print("BLE peripheral Send: ");
-  Serial.println( characteristicCache.c_str() );
+  log_i("BLE peripheral Send: %s", characteristicCache.c_str() );
 }
 
 //
@@ -322,7 +317,7 @@ bool _OT_ProtocolV2::process_peripheral_write_request(std::string& payload, OT_C
   
   if (error)  // filter invalid json
   {
-    Serial.println(error.c_str());
+    log_e("%s", error.c_str());
     return false; 
   }
   
@@ -386,7 +381,7 @@ bool _OT_ProtocolV2::process_central_read_request(std::string& payload, OT_Conne
   
   if (error)  // filter invalid json
   {
-    Serial.println(error.c_str());
+    log_e("%s", error.c_str());
     return false; 
   }
   

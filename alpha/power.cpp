@@ -71,6 +71,7 @@ void _TS_POWER::hp_on()
     toggle_fsm();
   }
 }
+
 void _TS_POWER::hp_on_exit()
 { 
   log_i("- Exit HP -");

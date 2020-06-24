@@ -187,8 +187,7 @@ void _TS_UI::task(void* parameter)
       }
 
       stackHighWaterMark = uxTaskGetStackHighWaterMark(NULL);
-      Serial.print("UI: ");
-      Serial.println(stackHighWaterMark);
+      log_w("UI highwatermark: %d", stackHighWaterMark);
 
       // Select option 3 to sleep.
       if (selected == 2)

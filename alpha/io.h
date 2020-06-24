@@ -30,8 +30,6 @@ class TS_IOButton
     
     TS_ButtonState(*FUNC)();
     TS_ButtonState poll();
-    
-    
 };
 
 #endif
