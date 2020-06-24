@@ -14,6 +14,13 @@ bool powerSaveTest = false;
 
 void setup() {
   TS_HAL.begin();
+
+  TS_Storage.begin();
+  TS_HAL.logcat("Storage free: ")
+        ->logcat(TS_Storage.freespace_get())
+        ->logcat(" bytes, %")
+        ->log(TS_Storage.freespace_get_pct());
+
   TS_HAL.ble_init();
 
   TS_Storage.begin();
