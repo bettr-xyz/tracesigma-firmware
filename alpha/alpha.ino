@@ -14,6 +14,13 @@ bool powerSaveTest = false;
 
 void setup() {
   TS_HAL.begin();
+
+  TS_Storage.begin();
+  TS_HAL.logcat("Storage free: ")
+        ->logcat(TS_Storage.freespace_get())
+        ->logcat(" bytes, %")
+        ->log(TS_Storage.freespace_get_pct());
+
   TS_HAL.ble_init();
 
   // disable power to microphone
@@ -34,11 +41,6 @@ void setup() {
   TS_HAL.logcat("Crash count: ")
       ->log(TS_PersistMem.crashCount);
 
-  TS_Storage.begin();
-  TS_HAL.logcat("Storage free: ")
-        ->logcat(TS_Storage.freespace_get())
-        ->logcat(" bytes, %")
-        ->log(TS_Storage.freespace_get_pct());
 }
 
 int skips = 0;
