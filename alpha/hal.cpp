@@ -59,7 +59,6 @@ void _TS_HAL::begin()
   M5.Axp.SetAdcRate(ADC_RATE_025HZ);       // Default sample rate is 200Hz
   M5.Axp.SetVOff(VOLTAGE_OFF_3200MV);      // Default is 3000mV
 
-
   // Default screen options
   M5.Lcd.setRotation(3);
   M5.Lcd.fillScreen(BLACK);
@@ -73,6 +72,9 @@ void _TS_HAL::begin()
   
   EXIT_CRITICAL;
 #endif
+
+  // disable power to microphone
+  power_set_mic(false);
 }
 
 void _TS_HAL::update()
@@ -499,10 +501,6 @@ bool _TS_HAL::power_is_charging()
   return is_charging;
 }
 
-//
-// Common logging functions
-//
-
 
 
 //
@@ -535,7 +533,7 @@ void _TS_HAL::persistmem_init()
 // logs a failure message and reboots
 void _TS_HAL::fail_reboot(const char *msg)
 {
-  log(msg);
+  log_e("%s", msg);
   delay(3000);
   reset();
 }

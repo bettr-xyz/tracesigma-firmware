@@ -3,8 +3,8 @@
 #include "ui.h"
 #include "power.h"
 #include "opentracev2.h"
-#include "storage.h"
 #include "serial_cmd.h"
+#include "storage.h"
 
 // Notes:
 // - look at mods/boards.diff.txt -- set CPU to 80mhz instead of 240mhz
@@ -16,8 +16,8 @@ void setup() {
   TS_HAL.begin();
   TS_HAL.ble_init();
 
-  // disable power to microphone
-  TS_HAL.power_set_mic(false);
+  TS_Storage.begin();
+  log_w("Storage free: %d, %d%", TS_Storage.freespace_get(), TS_Storage.freespace_get_pct());
 
   OT_ProtocolV2.begin();
 
@@ -30,15 +30,7 @@ void setup() {
   TS_SerialCmd.init();
   TS_SerialCmd.begin();
 
-  // DEBUG Storage features
-  TS_HAL.logcat("Crash count: ")
-      ->log(TS_PersistMem.crashCount);
-
-  TS_Storage.begin();
-  TS_HAL.logcat("Storage free: ")
-        ->logcat(TS_Storage.freespace_get())
-        ->logcat(" bytes, %")
-        ->log(TS_Storage.freespace_get_pct());
+  log_w("Crash count: %d", TS_PersistMem.crashCount);
 }
 
 int skips = 0;
@@ -56,12 +48,13 @@ void loop() {
   uint16_t connectedCount = OT_ProtocolV2.get_connected_count();
   uint16_t sleepDuration = TS_HAL.random_get(1000, 3000);
 
-  Serial.print(F("Devices connected: "));
-  Serial.println(connectedCount);
+  log_i("Devices connected: %d", connectedCount);
+  
   if(connectedCount > 0) {
     TS_HAL.sleep(TS_SleepMode::Task, sleepDuration);
   } else {
-    //TS_HAL.sleep(TS_SleepMode::Light, sleepDuration);
+    // TODO: figure out how to sleep deeper
+    // TS_HAL.sleep(TS_SleepMode::Light, sleepDuration);
     TS_HAL.sleep(TS_SleepMode::Task, sleepDuration);
   }
 
@@ -78,8 +71,10 @@ void loop() {
 
   // enable advertising
   OT_ProtocolV2.advertising_start();
+  
   // just advertise for 1s
   TS_HAL.sleep(TS_SleepMode::Task, 1000);
+  
   // disable advertising, get back to sleep
   OT_ProtocolV2.advertising_stop();
 

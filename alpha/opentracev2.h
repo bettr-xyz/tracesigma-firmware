@@ -16,17 +16,17 @@
 #include <BLEUtils.h>
 #include <BLEDevice.h>
 
-#define OT_ORG      "SG_MOH"
-#define OT_PROTOVER 2
+#define OT_ORG          "SG_MOH"
+#define OT_PROTOVER     2
 
-#define OT_CR_MAXLEN  256
-#define OT_CR_ID_MAX  128
+#define OT_CR_MAXLEN    256
+#define OT_CR_ID_MAX    128
 #define OT_CR_SHORT_MAX  32
 
 #define OT_SERVICEID        "B82AB3FC-1595-4F6A-80F0-FE094CC218F9"
 #define OT_CHARACTERISTICID "117BDD58-57CE-4E7A-8E87-7CCCDDA2A804"
 
-#define OT_TEMPID_MAX 100
+#define OT_TEMPID_MAX   100
 
 // TODO: store in mem as byte arrays instead of encoded strings
 

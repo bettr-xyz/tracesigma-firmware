@@ -8,12 +8,14 @@
 #ifndef __TS_HAL__
 #define __TS_HAL__
 
+#include "io.h"
+
 #include <stdint.h>
 #include <Arduino.h>
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
-#include "io.h"
+
 
 //
 // Platform-specific definitions
@@ -154,29 +156,6 @@ class _TS_HAL
     uint8_t power_get_batt_level();
     bool power_is_charging();
 
-
-    
-    //
-    // Common logging functions
-    //
-
-    // Logs a line, similar to println
-    template<typename T> inline _TS_HAL* log(T val)
-    {
-    #ifdef HAL_SERIAL_LOG
-      Serial.println(val);
-    #endif
-      return this;
-    };
-
-    // Logs without newline
-    template<typename T> inline _TS_HAL* logcat(T val)
-    {
-    #ifdef HAL_SERIAL_LOG
-      Serial.print(val);
-    #endif
-      return this;
-    };
 
 
     //

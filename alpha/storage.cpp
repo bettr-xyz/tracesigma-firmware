@@ -28,7 +28,7 @@ void _TS_Storage::begin()
   // - use the shortest path, f - spi flash
   if(!SPIFFS.begin(true, "/f", 1))
   {
-    TS_HAL.log("SPIFFS init error");
+    log_e("SPIFFS init error");
   }
 }
 
