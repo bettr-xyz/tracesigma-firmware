@@ -4,6 +4,7 @@
 #include "ui.h"
 #include "power.h"
 #include "opentracev2.h"
+#include "storage.h"
 #include "serial_cmd.h"
 
 // Notes:
@@ -29,6 +30,16 @@ void setup() {
   // Start serial command console
   TS_SerialCmd.init();
   TS_SerialCmd.begin();
+
+  // DEBUG Storage features
+  TS_HAL.logcat("Crash count: ")
+      ->log(TS_PersistMem.crashCount);
+
+  TS_Storage.begin();
+  TS_HAL.logcat("Storage free: ")
+        ->logcat(TS_Storage.freespace_get())
+        ->logcat(" bytes, %")
+        ->log(TS_Storage.freespace_get_pct());
 }
 
 int skips = 0;

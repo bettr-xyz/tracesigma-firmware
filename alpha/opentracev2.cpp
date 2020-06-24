@@ -1,19 +1,17 @@
-#include <BLEDevice.h>
-#include <BLEServer.h>
-#include <BLEUtils.h>
-#include <ArduinoJson.h>
-
-#include "opentracev2.h"
-#include "hal.h"
 #include "cleanbox.h"
+#include "hal.h"
+#include "storage.h"
+#include "opentracev2.h"
 
 // For Base64 encode
 extern "C" {
 #include "crypto/base64.h"
 }
-// TODO:
-// unsigned char * encoded = base64_encode((const unsigned char *)toEncode, strlen(toEncode), &outputLength);
-// unsigned char * decoded = base64_decode((const unsigned char *)toDecode, strlen(toDecode), &outputLength);
+
+#include <BLEDevice.h>
+#include <BLEServer.h>
+#include <BLEUtils.h>
+#include <ArduinoJson.h>
 
 //
 // Init
@@ -28,11 +26,25 @@ void _OT_ProtocolV2::begin()
   this->serviceUUID = BLEUUID(OT_SERVICEID);
   this->characteristicUUID = BLEUUID(OT_CHARACTERISTICID);
 
-  // DEBUG: temporarily fill tempIds with predictable fluff
-  for (int i = 0; i < OT_TEMPID_MAX; ++i)
+  TS_HAL.log("Loading TempIDs from storage");
+  if( TS_Storage.file_ids_readall(OT_TEMPID_MAX, tempIds) < OT_TEMPID_MAX )
   {
-    this->tempIds[i] = "8Vej+n4NAutyZlS1ItKDL//RcfqWP/Tq/T/BBBUOsmAF0U+TGBqd2xcMhpfcSOyN1cSGN3znSGguodP+NQ==";
+    TS_HAL.log("Insufficient/error loading, creating TempIDs");
+
+    // DEBUG: temporarily fill tempIds with predictable fluff
+    // - given that base64 takes up 28% more space, spending more cpu to encode/decode to save 28% of space may not be too worth it
+    for (int i = 0; i < OT_TEMPID_MAX; ++i)
+    {
+      this->tempIds[i] = "8Vej+n4NAutyZlS1ItKDL//RcfqWP/Tq/T/BBBUOsmAF0U+TGBqd2xcMhpfcSOyN1cSGN3znSGguodP+NQ==";
+    }
+
+    TS_HAL.log("Saving TempIDs to storage");
+    if(TS_Storage.file_ids_writeall(OT_TEMPID_MAX, tempIds) != OT_TEMPID_MAX)
+    {
+      TS_HAL.log("Error saving TempIDs");
+    }
   }
+  TS_HAL.log("Loaded TempIDs");
 
   // DEBUG: populate characteristic cache once
   this->update_characteristic_cache();
@@ -41,7 +53,8 @@ void _OT_ProtocolV2::begin()
   // Setup BLE and GATT profile
   BLEDevice::setMTU(OT_CR_MAXLEN);  // try to send whole message in 1 frame
   this->bleServer = TS_HAL.ble_server_get();
-  this->bleServer->setCallbacks(this);
+  //disable on connect/disconnect callbacks
+  // this->bleServer->setCallbacks(this);
   this->bleService = bleServer->createService(this->serviceUUID);
 
   this->bleCharacteristic = bleService->createCharacteristic(this->characteristicUUID, BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE);

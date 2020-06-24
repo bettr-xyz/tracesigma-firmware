@@ -25,12 +25,18 @@
 #define EXIT_CRITICAL   xSemaphoreGive(halMutex)
 static SemaphoreHandle_t halMutex;
 
+// Persistent memory
+// - Retained across reboots
+// - Lost during powerdown
+RTC_NOINIT_ATTR _TS_PersistMem TS_PersistMem;
+
 // Your one and only
 _TS_HAL TS_HAL;
 _TS_HAL::_TS_HAL() {}
 
 void _TS_HAL::begin()
 {
+  persistmem_init();
   this->uart_init();
   this->bleInitialized = false;
   halMutex = xSemaphoreCreateMutex();
@@ -407,6 +413,7 @@ BLEServer* _TS_HAL::ble_server_get()
 }
 
 
+
 //
 // Power management
 //
@@ -451,6 +458,8 @@ void _TS_HAL::power_off()
 
 void _TS_HAL::reset()
 {
+  TS_PersistMem.gracefulShutdown = true;
+
   ENTER_CRITICAL;
   ESP.restart();
   // Execution terminates here
@@ -494,6 +503,29 @@ bool _TS_HAL::power_is_charging()
 // Common logging functions
 //
 
+
+
+//
+// Persistmem
+//
+
+void _TS_HAL::persistmem_init()
+{
+  if(TS_PersistMem.validStart != TS_PERSISTMEM_VALID || TS_PersistMem.validEnd != TS_PERSISTMEM_VALID)
+  {
+    // clear all counters
+    memset(&TS_PersistMem, 0, sizeof(TS_PersistMem));
+    TS_PersistMem.validStart = TS_PERSISTMEM_VALID;
+    TS_PersistMem.validEnd = TS_PERSISTMEM_VALID;
+  }
+  else if(TS_PersistMem.gracefulShutdown == false)
+  {
+    ++TS_PersistMem.crashCount;
+  }
+
+  // reset this after every reboot
+  TS_PersistMem.gracefulShutdown = false;
+}
 
 
 //
