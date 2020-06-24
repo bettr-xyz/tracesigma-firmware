@@ -58,13 +58,13 @@ void _TS_UI::task(void* parameter)
 {
   UBaseType_t stackHighWaterMark;
   unsigned long savePowerStart = 0;
-
+  //Button that is on the same surface as the display
   button btnA;
   bool clickA = 0;
-
+  //Button that is on the side of the device (furthest away from btnA)
   button btnB;
   bool clickB = 0;
-
+  //Button that is on the side of the device, (closest to btnB)
   button btnP;
   bool clickP = 0;
 
@@ -89,7 +89,7 @@ void _TS_UI::task(void* parameter)
     clickA = this->read_button(TS_HAL.btn_a_get() != TS_ButtonState::NotPressed, btnA);
     clickB = this->read_button(TS_HAL.btn_b_get() != TS_ButtonState::NotPressed, btnB);
     clickP = this->read_button(TS_HAL.btn_power_get() != TS_ButtonState::NotPressed, btnP);
-
+	//resets selection of menu item
     if (clickA)
     {
       if (selected == cursor)
@@ -99,6 +99,7 @@ void _TS_UI::task(void* parameter)
         selected = cursor;
       }
     }
+	// When btnA is clicked, selects menu item by surrounding characters with  [ ]
     if (selected == 0)
     {
         options[0][brightness / 20 + 11] = '-';
@@ -118,6 +119,7 @@ void _TS_UI::task(void* parameter)
     }
     else
     {
+	  //toggles cursor ">" display position, to indicate next menu item 
       if (clickB)
       {
         ++cursor %= 3;
@@ -132,7 +134,7 @@ void _TS_UI::task(void* parameter)
     }
 
     bool hasUpdate = clickA || clickB || clickP;
-
+	
     if (hasUpdate)
     {
       if (millis() - savePowerStart < MIN_SLEEP_DURATION)
@@ -152,7 +154,7 @@ void _TS_UI::task(void* parameter)
 
       TS_HAL.lcd_cursor(0, 0);
       // TODO: Does not work with F()
-
+	  // using lcd_printf, print out UI elements horizontally, then linearly
       TS_HAL.lcd_printf("%04d-%02d-%02d ", datetime.year, datetime.month, datetime.day);
       TS_HAL.lcd_printf("%02d:%02d:%02d\n", datetime.hour, datetime.minute, datetime.second);
       TS_HAL.lcd_printf("Battery: %d%%", TS_HAL.power_get_batt_level());
@@ -185,6 +187,7 @@ void _TS_UI::task(void* parameter)
           TS_HAL.lcd_printf("  %s   \n", options[i]);
         }
       }
+	  TS_HAL.lcd_printf(", Uploading");
 
       stackHighWaterMark = uxTaskGetStackHighWaterMark(NULL);
       log_w("UI highwatermark: %d", stackHighWaterMark);
