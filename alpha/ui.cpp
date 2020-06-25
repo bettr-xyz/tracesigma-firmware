@@ -154,7 +154,7 @@ void _TS_UI::task(void* parameter)
 
       TS_HAL.lcd_cursor(0, 0);
       // TODO: Does not work with F()
-	  // using lcd_printf, print out UI elements horizontally, then linearly
+
       TS_HAL.lcd_printf("%04d-%02d-%02d ", datetime.year, datetime.month, datetime.day);
       TS_HAL.lcd_printf("%02d:%02d:%02d\n", datetime.hour, datetime.minute, datetime.second);
       TS_HAL.lcd_printf("Battery: %d%%", TS_HAL.power_get_batt_level());
@@ -184,10 +184,10 @@ void _TS_UI::task(void* parameter)
         }
         else
         {
-          TS_HAL.lcd_printf("  %s   \n", options[i]);
+          TS_HAL.lcd_printf("  %s ", options[i]);
         }
       }
-	  TS_HAL.lcd_printf(", Uploading");
+	  TS_HAL.lcd_printf("%s \n","uploading");
 
       stackHighWaterMark = uxTaskGetStackHighWaterMark(NULL);
       log_w("UI highwatermark: %d", stackHighWaterMark);
