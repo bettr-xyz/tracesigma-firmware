@@ -173,7 +173,6 @@ class _TS_HAL
 
   private:
     bool            bleInitialized;
-    bool            wifiInitialized;
     BLEScan*        pBLEScan;
     BLEServer*      pBLEServer;
     BLEAdvertising* pBLEAdvertiser;
