@@ -2,6 +2,7 @@
 #define __TS_SERIAL__
 
 #define CONFIG_ESP_CONSOLE_UART_NUM 0
+#define STR_ARG_MAXLEN 31
 
 
 class _TS_SerialCmd
