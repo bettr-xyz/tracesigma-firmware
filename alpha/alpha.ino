@@ -49,6 +49,8 @@ void loop() {
   TS_RADIO.wifi_enable(TS_POWER.get_state() == TS_PowerState::HIGH_POWER);
   TS_RADIO.wifi_update();
 
+
+  
   // don't turn off radio if we have connected clients
   uint16_t connectedCount = OT_ProtocolV2.get_connected_count();
   uint16_t sleepDuration = TS_HAL.random_get(1000, 3000);

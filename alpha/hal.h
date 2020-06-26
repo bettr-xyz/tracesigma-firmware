@@ -88,6 +88,8 @@ class _TS_HAL
     //
     // LCD
     //
+	//fill entire screen with a color
+	void fillScreen(uint16_t color);
 
     // sets brightness, 0-100
     void lcd_brightness(uint8_t);

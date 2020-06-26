@@ -116,6 +116,14 @@ uint32_t _TS_HAL::random_get(uint32_t min, uint32_t max)
 //
 // LCD
 //
+void _TS_HAL::fillScreen(uint16_t color)
+{
+	ENTER_CRITICAL;
+#ifdef HAL_M5STICK_C
+	M5.Lcd.fillScreen(color);
+#endif
+	EXIT_CRITICAL;
+}
 
 void _TS_HAL::lcd_brightness(uint8_t level)
 {

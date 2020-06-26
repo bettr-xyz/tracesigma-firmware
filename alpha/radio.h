@@ -18,7 +18,8 @@ class _TS_RADIO
     bool wifi_is_connected();
     void wifi_enable(bool);
     void wifi_update();
-
+	bool getUploadFlag();
+	const char * getWiFiName();
   private:
     void wifi_connect();
     void wifi_disconnect();

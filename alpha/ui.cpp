@@ -70,7 +70,8 @@ void _TS_UI::task(void* parameter)
 
   int cursor = 0;
   int selected = -1;
-
+  bool wifiConnected = false;
+  bool uploadFlag = false;
   char options[][21] =
   {
     " Brightness |---- ",
@@ -158,10 +159,40 @@ void _TS_UI::task(void* parameter)
       TS_HAL.lcd_printf("%04d-%02d-%02d ", datetime.year, datetime.month, datetime.day);
       TS_HAL.lcd_printf("%02d:%02d:%02d\n", datetime.hour, datetime.minute, datetime.second);
       TS_HAL.lcd_printf("Battery: %d%%", TS_HAL.power_get_batt_level());
+	  
+	  //uploadflag should be set by serial, temporarily putting it in RADIO.CPP 
+	  //for testing , set uploadFlag to true 
+	  uploadFlag = TS_RADIO.getUploadFlag();
+	  uploadFlag = true;
+	  //if charging and connected to wifi, display upload messages.
       if (TS_HAL.power_is_charging())
       {
         TS_HAL.lcd_printf(", Charging");
+		if (wifiConnected && uploadFlag)
+		{
+			//attempt to upload 
+			//TS_HAL.fillScreen(0x0000);
+			//show uploading text in the middle tentatively
+			TS_HAL.lcd_cursor(50, 140);
+			//update on progress of upload
+			TS_HAL.lcd_printf("%s", uploadFlag ?"UPLOADING":"");
+			TS_HAL.lcd_printf("Connected to %s", TS_RADIO.getWiFiName());
+
+			//clear display
+		}
       }
+	  if (wifiConnected && uploadFlag)
+	  {
+		  //attempt to upload 
+		  //clear display
+		  TS_HAL.fillScreen(0x0000);
+		  //show uploading text in the middle tentatively
+		  TS_HAL.lcd_cursor(50, 140);
+		  //update on progress of upload
+		  TS_HAL.lcd_printf("%s", uploadFlag ? "UPLOADING \n" : "");
+		  TS_HAL.lcd_printf("Connected to %s", TS_RADIO.getWiFiName());
+		  
+	  }
       TS_HAL.lcd_printf("\n");
       
       for (int i = 0; i < 3; i++)
@@ -170,7 +201,7 @@ void _TS_UI::task(void* parameter)
         {
           if (i == 1) 
           {
-            bool wifiConnected = TS_RADIO.wifi_is_connected();
+            wifiConnected = TS_RADIO.wifi_is_connected();
             TS_HAL.lcd_printf(" [%s]      \n", wifiConnected ? " Connected " : " Not Connected ");
           }
           else
@@ -184,10 +215,11 @@ void _TS_UI::task(void* parameter)
         }
         else
         {
-          TS_HAL.lcd_printf("  %s ", options[i]);
+          TS_HAL.lcd_printf("  %s \n", options[i]);
         }
       }
-	  TS_HAL.lcd_printf("%s \n","uploading");
+
+
 
       stackHighWaterMark = uxTaskGetStackHighWaterMark(NULL);
       log_w("UI highwatermark: %d", stackHighWaterMark);
@@ -203,3 +235,4 @@ void _TS_UI::task(void* parameter)
     TS_HAL.sleep(TS_SleepMode::Task, 20);
   }
 }
+
