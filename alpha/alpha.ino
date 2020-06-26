@@ -1,5 +1,6 @@
 #include "cleanbox.h"
 #include "hal.h"
+#include "radio.h"
 #include "ui.h"
 #include "power.h"
 #include "opentracev2.h"
@@ -43,6 +44,10 @@ void loop() {
   TS_HAL.led_set(TS_Led::Red, true);
   TS_HAL.sleep(TS_SleepMode::Default, 1);
   TS_HAL.led_set(TS_Led::Red, false);
+
+  // Wifi 
+  TS_RADIO.wifi_enable(TS_POWER.get_state() == TS_PowerState::HIGH_POWER);
+  TS_RADIO.wifi_update();
 
   // don't turn off radio if we have connected clients
   uint16_t connectedCount = OT_ProtocolV2.get_connected_count();
