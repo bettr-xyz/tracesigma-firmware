@@ -11,7 +11,12 @@
 // - look at mods/boards.diff.txt -- set CPU to 80mhz instead of 240mhz
 //
 
-bool powerSaveTest = false;
+#ifndef WIFI_SSID
+#define WIFI_SSID "test"       // Enter your SSID here
+#endif
+#ifndef WIFI_PASS
+#define WIFI_PASS "password"    // Enter your WiFi password here
+#endif
 
 void setup() {
   TS_HAL.begin();
@@ -19,6 +24,36 @@ void setup() {
 
   TS_Storage.begin();
   log_w("Storage free: %d, %d%", TS_Storage.freespace_get(), TS_Storage.freespace_get_pct());
+
+  TS_Settings* settings = TS_Storage.settings_get();
+
+  if (strcmp(settings->userId, "") == 0)
+  {
+    memset(settings->userId, '\0', sizeof(settings->userId));
+    strcpy(settings->userId, "0123456789");
+  }
+
+  if (strcmp(settings->wifiSsid, "") == 0)
+  {
+    memset(settings->wifiSsid, '\0', sizeof(settings->wifiSsid));
+    strcpy(settings->wifiSsid, WIFI_SSID);
+  }
+
+  if (strcmp(settings->wifiPass, "") == 0)
+  {
+    memset(settings->wifiPass, '\0', sizeof(settings->wifiPass));
+    strcpy(settings->wifiPass, WIFI_PASS);
+  }
+
+  log_i("Stored settings:");
+  log_i("Version: %d", settings->settingsVersion);
+  log_i("UID: %.32s", settings->userId);
+  log_i("WIFI_SSID: %.32s", settings->wifiSsid);
+  log_i("WIFI_PASS: %.32s", settings->wifiPass);
+
+  TS_Storage.settings_save();
+
+  TS_RADIO.wifi_config(settings->wifiSsid, settings->wifiPass);
 
   OT_ProtocolV2.begin();
 
@@ -32,6 +67,7 @@ void setup() {
   TS_SerialCmd.begin();
 
   log_w("Crash count: %d", TS_PersistMem.crashCount);
+  log_i("Setup completed free heap: %d", ESP.getFreeHeap());
 }
 
 int skips = 0;
