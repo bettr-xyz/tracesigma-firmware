@@ -164,7 +164,8 @@ static void register_version()
   ESP_ERROR_CHECK( esp_console_cmd_register(&cmd) );
 }
 
-static struct {
+static struct
+{
   struct arg_lit *get;
   struct arg_date *set;
   struct arg_end *end;
@@ -175,15 +176,19 @@ static int do_clock_cmd(int argc, char **argv)
   TS_DateTime dt;
 
   int nerrors = arg_parse(argc, argv, (void **) &clock_args);
-  if (nerrors != 0) {
-      arg_print_errors(stderr, clock_args.end, argv[0]);
-      return ESP_ERR_INVALID_ARG;
+  if (nerrors != 0)
+  {
+    arg_print_errors(stderr, clock_args.end, argv[0]);
+    return ESP_ERR_INVALID_ARG;
   }
 
-  if (clock_args.get->count == 1) {
+  if (clock_args.get->count == 1)
+  {
     TS_HAL.rtc_get(dt);
     printf("Current datetime: %04d-%02d-%02dT%02d:%02d:%02d\n\n", dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second);
-  } else if (clock_args.set->count == 1) {
+  } 
+  else if (clock_args.set->count == 1)
+  {
     /* tm_year gives years since 1900 */
     dt.year = (clock_args.set->tmval->tm_year) + 1900;
     /* tm_mon range = [0, 11], convert to [1,12] */
@@ -194,7 +199,9 @@ static int do_clock_cmd(int argc, char **argv)
     dt.second = clock_args.set->tmval->tm_sec;
     TS_HAL.rtc_set(dt);
     printf("Success!\n\n");
-  } else {
+  } 
+  else
+  {
     printf("Type help for help\n\n");
     return ESP_ERR_INVALID_ARG;
   }
@@ -208,7 +215,8 @@ static void register_clock_cmd()
   clock_args.set = arg_date0("s", "set", "%Y-%m-%dT%H:%M:%S", NULL, "set datetime");
   clock_args.end = arg_end(20);
 
-  const esp_console_cmd_t cmd = {
+  const esp_console_cmd_t cmd =
+  {
     .command = "clock",
     .help = "Get or set datetime",
     .hint = NULL,
