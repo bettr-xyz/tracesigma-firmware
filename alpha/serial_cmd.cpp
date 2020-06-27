@@ -165,7 +165,8 @@ static void register_version()
   ESP_ERROR_CHECK( esp_console_cmd_register(&cmd) );
 }
 
-static struct {
+static struct
+{
   struct arg_lit *get;
   struct arg_str *ssid;
   struct arg_str *password;
@@ -176,41 +177,56 @@ static int do_wifi_cmd(int argc, char **argv)
 {
   int nerrors = arg_parse(argc, argv, (void**) &wifi_args);
 
-  if (nerrors != 0) {
-      arg_print_errors(stderr, wifi_args.end, argv[0]);
-      return ESP_ERR_INVALID_ARG;
+  if (nerrors != 0)
+  {
+    arg_print_errors(stderr, wifi_args.end, argv[0]);
+    return ESP_ERR_INVALID_ARG;
   }
 
   /* get settings from eeprom */
   TS_Settings* settings = TS_Storage.settings_get();
 
   /* user issued get cmd */
-  if (wifi_args.get->count == 1) {
+  if (wifi_args.get->count == 1)
+  {
     printf("SSID: %s\n", settings->wifiSsid);
     printf("Password: %s\n\n", settings->wifiPass);
-  /* user issed set cmd */
-  } else if (wifi_args.ssid->count == 1 || wifi_args.password->count == 1) {
-    if (wifi_args.ssid->count == 1) {
+  }
+  /* user issued set cmd, store string if length check passes */
+  else if (wifi_args.ssid->count == 1 || wifi_args.password->count == 1)
+  {
+    if (wifi_args.ssid->count == 1)
+    {
       size_t ssid_strlen = strlen(wifi_args.ssid->sval[0]);
-      if (ssid_strlen <= STR_ARG_MAXLEN) {
+      if (ssid_strlen <= STR_ARG_MAXLEN)
+      {
         strcpy(settings->wifiSsid, wifi_args.ssid->sval[0]);
-      } else {
+      }
+      else
+      {
         printf("SSID exceeds max string length of %d\n\n", STR_ARG_MAXLEN);
         return ESP_ERR_INVALID_ARG;
       }
     }
-    if (wifi_args.password->count == 1) {
+    if (wifi_args.password->count == 1)
+    {
       size_t pass_strlen = strlen(wifi_args.password->sval[0]);
-      if (pass_strlen <= STR_ARG_MAXLEN) {
+      if (pass_strlen <= STR_ARG_MAXLEN)
+      {
         strcpy(settings->wifiPass, wifi_args.password->sval[0]);
-      } else {
+      }
+      else
+      {
         printf("Password exceeds max string length of %d\n\n", STR_ARG_MAXLEN);
         return ESP_ERR_INVALID_ARG;
       }
     }
     TS_Storage.settings_save();
     printf("WIFI settings saved\n\n");
-  } else {
+  }
+  /* user didn't provide args, print help */
+  else
+  {
     arg_print_syntax(stdout, (void **) &wifi_args, "\n");
     arg_print_glossary_gnu(stdout, (void **) &wifi_args);
   }
@@ -225,12 +241,13 @@ static void register_wifi_cmd(void)
   wifi_args.password = arg_str0("p", "pass", NULL, "set password");
   wifi_args.end = arg_end(20);
 
-  const esp_console_cmd_t sta_cmd = {
-      .command = "wifi",
-      .help = "Get or set WIFI settings",
-      .hint = NULL,
-      .func = &do_wifi_cmd,
-      .argtable = &wifi_args
+  const esp_console_cmd_t sta_cmd =
+  {
+    .command = "wifi",
+    .help = "Get or set WIFI settings",
+    .hint = NULL,
+    .func = &do_wifi_cmd,
+    .argtable = &wifi_args
   };
 
   ESP_ERROR_CHECK( esp_console_cmd_register(&sta_cmd) );
