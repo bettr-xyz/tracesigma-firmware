@@ -137,6 +137,13 @@ void _TS_SerialCmd::serial_cmd_loop()
   }
 }
 
+static void print_cmd_help(char* cmd_name, void** argtable)
+{
+  printf("%s ",cmd_name);
+  arg_print_syntax(stdout, argtable, "\n");
+  arg_print_glossary_gnu(stdout, argtable);
+}
+
 static int get_version(int argc, char **argv)
 {
   esp_chip_info_t info;
@@ -227,8 +234,7 @@ static int do_wifi_cmd(int argc, char **argv)
   /* user didn't provide args, print help */
   else
   {
-    arg_print_syntax(stdout, (void **) &wifi_args, "\n");
-    arg_print_glossary_gnu(stdout, (void **) &wifi_args);
+    print_cmd_help(argv[0], (void**) &wifi_args);
   }
 
   return ESP_OK;
