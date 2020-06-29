@@ -142,8 +142,10 @@ class _TS_HAL
     // BLE
     //
     void ble_init();
+    void ble_deinit();
     BLEServer* ble_server_get();
     BLEScanResults ble_scan(uint8_t seconds);
+    bool ble_is_init();
 
     
     //

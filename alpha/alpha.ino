@@ -53,7 +53,7 @@ void setup() {
 
   TS_Storage.settings_save();
 
-  TS_RADIO.wifi_config(settings->wifiSsid, settings->wifiPass);
+  TS_RADIO.config(settings->wifiSsid, settings->wifiPass, settings->userId);
 
   OT_ProtocolV2.begin();
 
@@ -85,39 +85,43 @@ void loop() {
   TS_RADIO.wifi_enable(TS_POWER.get_state() == TS_PowerState::HIGH_POWER);
   TS_RADIO.wifi_update();
 
-  // don't turn off radio if we have connected clients
-  uint16_t connectedCount = OT_ProtocolV2.get_connected_count();
-  uint16_t sleepDuration = TS_HAL.random_get(1000, 3000);
-
-  log_i("Devices connected: %d", connectedCount);
-  
-  if(connectedCount > 0) {
-    TS_HAL.sleep(TS_SleepMode::Task, sleepDuration);
-  } else {
-    // TODO: figure out how to sleep deeper
-    // TS_HAL.sleep(TS_SleepMode::Light, sleepDuration);
-    TS_HAL.sleep(TS_SleepMode::Task, sleepDuration);
-  }
-
-  if(skips >= 5) { // vary the interval between scans here
-    skips = 0;
-    
-    // spend up to 1s scanning, lowest acceptable rssi: -95
-    OT_ProtocolV2.scan_and_connect(1, -95);
-  }
-  else
+  if (TS_HAL.ble_is_init())
   {
-    ++skips;
-  }
+    // don't turn off radio if we have connected clients
+    uint16_t connectedCount = OT_ProtocolV2.get_connected_count();
+    uint16_t sleepDuration = TS_HAL.random_get(1000, 3000);
 
-  // enable advertising
-  OT_ProtocolV2.advertising_start();
-  
-  // just advertise for 1s
-  TS_HAL.sleep(TS_SleepMode::Task, 1000);
-  
-  // disable advertising, get back to sleep
-  OT_ProtocolV2.advertising_stop();
+    log_i("Devices connected: %d", connectedCount);
+    
+    if(connectedCount > 0) {
+      TS_HAL.sleep(TS_SleepMode::Task, sleepDuration);
+    } else {
+      // TODO: figure out how to sleep deeper
+      // TS_HAL.sleep(TS_SleepMode::Light, sleepDuration);
+      TS_HAL.sleep(TS_SleepMode::Task, sleepDuration);
+    }
+
+    if(skips >= 5) { // vary the interval between scans here
+      skips = 0;
+      
+      // spend up to 1s scanning, lowest acceptable rssi: -95
+      OT_ProtocolV2.scan_and_connect(1, -95);
+    }
+    else
+    {
+      ++skips;
+    }
+
+    // enable advertising
+    OT_ProtocolV2.advertising_start();
+    
+    // just advertise for 1s
+    TS_HAL.sleep(TS_SleepMode::Task, 1000);
+    
+    // disable advertising, get back to sleep
+    OT_ProtocolV2.advertising_stop();
+
+  }
 
   // Give some time for comms after broadcasts
   // TODO: by right should wait T time after last uncompleted handshake before going back to sleep

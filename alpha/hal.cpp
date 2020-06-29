@@ -42,7 +42,7 @@ void _TS_HAL::begin()
   halMutex = xSemaphoreCreateMutex();
 
   // init ble before rng
-  BLEDevice::init(DEVICE_NAME);
+  // BLEDevice::init(DEVICE_NAME);
   this->random_seed();
 
 #ifdef HAL_M5STICK_C
@@ -391,6 +391,8 @@ void _TS_HAL::ble_init()
 {
   if (!this->bleInitialized)
   {
+    BLEDevice::init(DEVICE_NAME);
+  
     pBLEServer = BLEDevice::createServer();
     pBLEAdvertiser = BLEDevice::getAdvertising();
 
@@ -403,6 +405,15 @@ void _TS_HAL::ble_init()
   }
 }
 
+void _TS_HAL::ble_deinit()
+{
+  if (this->bleInitialized)
+  {
+    BLEDevice::deinit();
+    this->bleInitialized = false;
+  }
+}
+
 BLEScanResults _TS_HAL::ble_scan(uint8_t seconds)
 {
   this->pBLEScan->clearResults();
@@ -412,6 +423,11 @@ BLEScanResults _TS_HAL::ble_scan(uint8_t seconds)
 BLEServer* _TS_HAL::ble_server_get()
 {
   return this->pBLEServer;
+}
+
+bool _TS_HAL::ble_is_init()
+{
+  return this->bleInitialized;
 }
 
 

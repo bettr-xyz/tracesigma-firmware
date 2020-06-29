@@ -1,8 +1,6 @@
 #ifndef __TS_RADIO__
 #define __TS_RADIO__
 
-#include <WiFiClientSecure.h>
-
 #define HAL_M5STICK_C
 #define HAL_SERIAL_LOG
 
@@ -18,7 +16,7 @@ class _TS_RADIO
     bool wifi_is_connected();
     void wifi_enable(bool);
     void wifi_update();
-    void wifi_config(char*, char*);
+    void config(char*, char*, char*);
 
   private:
     void wifi_connect();
@@ -31,8 +29,7 @@ class _TS_RADIO
 
     char ssid[32];
     char password[32];
-
-    WiFiClientSecure client;
+    char uid[32];
 };
 
 extern _TS_RADIO TS_RADIO;

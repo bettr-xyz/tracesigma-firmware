@@ -30,19 +30,6 @@ void _OT_ProtocolV2::begin()
   if( TS_Storage.file_ids_readall(OT_TEMPID_MAX, tempIds) < OT_TEMPID_MAX )
   {
     log_w("Insufficient/error loading, creating TempIDs");
-
-    // DEBUG: temporarily fill tempIds with predictable fluff
-    // - given that base64 takes up 28% more space, spending more cpu to encode/decode to save 28% of space may not be too worth it
-    for (int i = 0; i < OT_TEMPID_MAX; ++i)
-    {
-      this->tempIds[i] = "8Vej+n4NAutyZlS1ItKDL//RcfqWP/Tq/T/BBBUOsmAF0U+TGBqd2xcMhpfcSOyN1cSGN3znSGguodP+NQ==";
-    }
-
-    log_i("Saving TempIDs to storage");
-    if(TS_Storage.file_ids_writeall(OT_TEMPID_MAX, tempIds) != OT_TEMPID_MAX)
-    {
-      log_i("Error saving TempIDs");
-    }
   }
   log_i("Loaded TempIDs");
 
