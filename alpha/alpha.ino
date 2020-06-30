@@ -20,7 +20,6 @@
 
 void setup() {
   TS_HAL.begin();
-  TS_HAL.ble_init();
 
   TS_Storage.begin();
   log_w("Storage free: %d, %d%", TS_Storage.freespace_get(), TS_Storage.freespace_get_pct());

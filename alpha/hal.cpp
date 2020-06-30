@@ -42,7 +42,7 @@ void _TS_HAL::begin()
   halMutex = xSemaphoreCreateMutex();
 
   // init ble before rng
-  // BLEDevice::init(DEVICE_NAME);
+  this->ble_init();
   this->random_seed();
 
 #ifdef HAL_M5STICK_C
