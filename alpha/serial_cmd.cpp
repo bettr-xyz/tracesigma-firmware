@@ -144,6 +144,25 @@ static void print_cmd_help(char* cmd_name, void** argtable)
   arg_print_glossary_gnu(stdout, argtable);
 }
 
+//
+// Copy input string to TS_Settings if length check passes
+// - in_str: arg.{cmd}->sval[n]
+// - store_loc: TS_Settings->{str_setting}
+//
+static int check_copy_str_setting(const char* in_str, char* store_loc)
+{
+  if (strlen(in_str) <= STR_ARG_MAXLEN)
+  {
+    strcpy(store_loc, in_str);
+    return ESP_OK;
+  }
+  else
+  {
+    printf("String argument exceeds max length of %d\n\n", STR_ARG_MAXLEN);
+    return ESP_ERR_INVALID_ARG;
+  }
+}
+
 static int get_version(int argc, char **argv)
 {
   esp_chip_info_t info;
@@ -259,6 +278,72 @@ static void register_wifi_cmd(void)
   ESP_ERROR_CHECK( esp_console_cmd_register(&sta_cmd) );
 }
 
+static struct
+{
+  struct arg_lit *get;
+  struct arg_str *set;
+  struct arg_end *end;
+} userid_args;
+
+static int do_userid_cmd(int argc, char **argv)
+{
+  int nerrors = arg_parse(argc, argv, (void**) &userid_args);
+
+  if (nerrors != 0)
+  {
+    arg_print_errors(stderr, userid_args.end, argv[0]);
+    return ESP_ERR_INVALID_ARG;
+  }
+
+  /* get settings from eeprom */
+  TS_Settings* settings = TS_Storage.settings_get();
+
+  /* user issued get cmd */
+  if (userid_args.get->count == 1)
+  {
+    printf("userID: %s\n", settings->userId);
+  }
+  /* user issued set cmd, store string if length check passes */
+  else if (userid_args.set->count == 1)
+  {
+    int ret = check_copy_str_setting(userid_args.set->sval[0], settings->userId);
+    if (ret == ESP_OK)
+    {
+      TS_Storage.settings_save();
+      printf("Setting saved\n\n");
+    }
+    else
+    {
+      return ret;
+    }
+  }
+  /* user didn't provide args, print help */
+  else
+  {
+    print_cmd_help(argv[0], (void**) &userid_args);
+  }
+
+  return ESP_OK;
+}
+
+static void register_userid_cmd(void)
+{
+  userid_args.get = arg_lit0("g", "get", "get userID");
+  userid_args.set = arg_str0("s", "set", NULL, "set userID");
+  userid_args.end = arg_end(20);
+
+  const esp_console_cmd_t sta_cmd =
+  {
+    .command = "userid",
+    .help =  "Get or set userID",
+    .hint = NULL,
+    .func = &do_userid_cmd,
+    .argtable = &userid_args
+  };
+
+  ESP_ERROR_CHECK( esp_console_cmd_register(&sta_cmd) );
+}
+
 //
 // Register command callbacks
 // - this has to be at the end after all static functions
@@ -267,6 +352,7 @@ void _TS_SerialCmd::register_commands()
 {
   register_version();
   register_wifi_cmd();
+  register_userid_cmd();
   esp_console_register_help_command();
 }
 
