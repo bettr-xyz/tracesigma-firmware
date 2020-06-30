@@ -303,7 +303,7 @@ static void register_clock_cmd()
 static void register_wifi_cmd(void)
 {
   wifi_args.get = arg_lit0("g", "get", "get WIFI settings");
-  wifi_args.ssid = arg_str0("s", "ssid", NULL, "set SSID");
+  wifi_args.ssid = arg_str0("s", "ssid", NULL, "set SSID, wrap in quotes \"\" if contains space");
   wifi_args.password = arg_str0("p", "pass", NULL, "set password");
   wifi_args.end = arg_end(20);
 
