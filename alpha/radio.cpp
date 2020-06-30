@@ -13,7 +13,7 @@
 #define SSID_DISPLAY_COUNT 1
 
 #define WIFI_RETRY_INTERVAL 30000
-
+bool uploadFlag = false;
 _TS_RADIO TS_RADIO;
 
 // Ctor
@@ -22,6 +22,14 @@ _TS_RADIO::_TS_RADIO() {
   this->wifiTimerStart = -(WIFI_RETRY_INTERVAL);
 }
 
+bool _TS_RADIO::getUploadFlag()
+{
+	return uploadFlag;
+}
+const char * _TS_RADIO::getWiFiName() 
+{
+	return WIFI_SSID;
+}
 //
 // Connect to WIFI
 // Scans for SSIDs, if preset SSID is found, attempt to connect, 

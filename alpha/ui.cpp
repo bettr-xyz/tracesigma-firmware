@@ -58,19 +58,20 @@ void _TS_UI::task(void* parameter)
 {
   UBaseType_t stackHighWaterMark;
   unsigned long savePowerStart = 0;
-
+  //Button that is on the same surface as the display
   button btnA;
   bool clickA = 0;
-
+  //Button that is on the side of the device (furthest away from btnA)
   button btnB;
   bool clickB = 0;
-
+  //Button that is on the side of the device, (closest to btnB)
   button btnP;
   bool clickP = 0;
 
   int cursor = 0;
   int selected = -1;
-
+  bool wifiConnected = false;
+  bool uploadFlag = false;
   char options[][21] =
   {
     " Brightness |---- ",
@@ -89,7 +90,7 @@ void _TS_UI::task(void* parameter)
     clickA = this->read_button(TS_HAL.btn_a_get() != TS_ButtonState::NotPressed, btnA);
     clickB = this->read_button(TS_HAL.btn_b_get() != TS_ButtonState::NotPressed, btnB);
     clickP = this->read_button(TS_HAL.btn_power_get() != TS_ButtonState::NotPressed, btnP);
-
+	//resets selection of menu item
     if (clickA)
     {
       if (selected == cursor)
@@ -99,6 +100,7 @@ void _TS_UI::task(void* parameter)
         selected = cursor;
       }
     }
+	// When btnA is clicked, selects menu item by surrounding characters with  [ ]
     if (selected == 0)
     {
         options[0][brightness / 20 + 11] = '-';
@@ -118,6 +120,7 @@ void _TS_UI::task(void* parameter)
     }
     else
     {
+	  //toggles cursor ">" display position, to indicate next menu item 
       if (clickB)
       {
         ++cursor %= 3;
@@ -132,7 +135,7 @@ void _TS_UI::task(void* parameter)
     }
 
     bool hasUpdate = clickA || clickB || clickP;
-
+	
     if (hasUpdate)
     {
       if (millis() - savePowerStart < MIN_SLEEP_DURATION)
@@ -156,10 +159,40 @@ void _TS_UI::task(void* parameter)
       TS_HAL.lcd_printf("%04d-%02d-%02d ", datetime.year, datetime.month, datetime.day);
       TS_HAL.lcd_printf("%02d:%02d:%02d\n", datetime.hour, datetime.minute, datetime.second);
       TS_HAL.lcd_printf("Battery: %d%%", TS_HAL.power_get_batt_level());
+	  
+	  //uploadflag should be set by serial, temporarily putting it in RADIO.CPP 
+	  //for testing , set uploadFlag to true 
+	  uploadFlag = TS_RADIO.getUploadFlag();
+	  uploadFlag = true;
+	  //if charging and connected to wifi, display upload messages.
       if (TS_HAL.power_is_charging())
       {
         TS_HAL.lcd_printf(", Charging");
+		if (wifiConnected && uploadFlag)
+		{
+			//attempt to upload 
+			//TS_HAL.fillScreen(0x0000);
+			//show uploading text in the middle tentatively
+			TS_HAL.lcd_cursor(50, 140);
+			//update on progress of upload
+			TS_HAL.lcd_printf("%s", uploadFlag ?"UPLOADING":"");
+			TS_HAL.lcd_printf("Connected to %s", TS_RADIO.getWiFiName());
+
+			//clear display
+		}
       }
+	  if (wifiConnected && uploadFlag)
+	  {
+		  //attempt to upload 
+		  //clear display
+		  TS_HAL.fillScreen(0x0000);
+		  //show uploading text in the middle tentatively
+		  TS_HAL.lcd_cursor(50, 140);
+		  //update on progress of upload
+		  TS_HAL.lcd_printf("%s", uploadFlag ? "UPLOADING \n" : "");
+		  TS_HAL.lcd_printf("Connected to %s", TS_RADIO.getWiFiName());
+		  
+	  }
       TS_HAL.lcd_printf("\n");
       
       for (int i = 0; i < 3; i++)
@@ -168,7 +201,7 @@ void _TS_UI::task(void* parameter)
         {
           if (i == 1) 
           {
-            bool wifiConnected = TS_RADIO.wifi_is_connected();
+            wifiConnected = TS_RADIO.wifi_is_connected();
             TS_HAL.lcd_printf(" [%s]      \n", wifiConnected ? " Connected " : " Not Connected ");
           }
           else
@@ -182,9 +215,11 @@ void _TS_UI::task(void* parameter)
         }
         else
         {
-          TS_HAL.lcd_printf("  %s   \n", options[i]);
+          TS_HAL.lcd_printf("  %s \n", options[i]);
         }
       }
+
+
 
       stackHighWaterMark = uxTaskGetStackHighWaterMark(NULL);
       log_w("UI highwatermark: %d", stackHighWaterMark);
@@ -200,3 +235,4 @@ void _TS_UI::task(void* parameter)
     TS_HAL.sleep(TS_SleepMode::Task, 20);
   }
 }
+
