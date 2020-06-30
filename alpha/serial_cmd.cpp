@@ -257,7 +257,6 @@ static int do_wifi_cmd(int argc, char **argv)
       else
       {
         printf("SSID exceeds max string length of %d\n\n", STR_ARG_MAXLEN);
-        return ESP_ERR_INVALID_ARG;
       }
     }
     if (wifi_args.password->count == 1)
@@ -270,7 +269,6 @@ static int do_wifi_cmd(int argc, char **argv)
       else
       {
         printf("Password exceeds max string length of %d\n\n", STR_ARG_MAXLEN);
-        return ESP_ERR_INVALID_ARG;
       }
     }
     TS_Storage.settings_save();
