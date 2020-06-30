@@ -11,7 +11,7 @@ class _TS_RADIO
   public:
     _TS_RADIO();
 
-    void begin();
+    void init();
 
     bool wifi_is_connected();
     void wifi_enable(bool);

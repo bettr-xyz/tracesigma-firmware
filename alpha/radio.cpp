@@ -15,9 +15,10 @@
 
 #define TEMPID_BATCH_SIZE 100
 #define HTTPS_PORT 443
-const char* host = "asia-east2-bettr-trace-1.cloudfunctions.net";
-const char* uri_getTempIDs = "/getTempIDs";
-const char* root_ca = \
+const PROGMEM char* host = "asia-east2-bettr-trace-1.cloudfunctions.net";
+const PROGMEM char* uri_getTempIDs = "/getTempIDs";
+const PROGMEM char* endOfHeaders = "\r\n\r\n";
+const PROGMEM char* root_ca = \
     "-----BEGIN CERTIFICATE-----\n" \
     "MIIDujCCAqKgAwIBAgILBAAAAAABD4Ym5g0wDQYJKoZIhvcNAQEFBQAwTDEgMB4G\n" \
     "A1UECxMXR2xvYmFsU2lnbiBSb290IENBIC0gUjIxEzARBgNVBAoTCkdsb2JhbFNp\n" \
@@ -40,7 +41,6 @@ const char* root_ca = \
     "AfvDbbnvRG15RjF+Cv6pgsH/76tuIMRQyV+dTZsXjAzlAcmgQWpzU/qlULRuJQ/7\n" \
     "TBj0/VLZjmmx6BEP3ojY+x1J96relc8geMJgEtslQIxq/H5COEBkEveegeGTLg==\n" \
     "-----END CERTIFICATE-----\n";
-const char* endOfHeaders = "\r\n\r\n";
 
 _TS_RADIO TS_RADIO;
 
@@ -51,6 +51,12 @@ _TS_RADIO::_TS_RADIO() {
 
   strcpy(this->ssid, "");
   strcpy(this->password, "");
+  strcpy(this->uid, "");
+}
+
+void _TS_RADIO::init() {
+  TS_Settings* settings = TS_Storage.settings_get();
+  this->config(settings->wifiSsid, settings->wifiPass, settings->userId);
 }
 
 //
@@ -59,7 +65,7 @@ _TS_RADIO::_TS_RADIO() {
 // else prints the failed connection attempt. 
 void _TS_RADIO::wifi_connect()
 {
-  if (wifi_scan_networks())
+  if (this->wifi_scan_networks())
   {
     //Attempt to connect to 'WIFI_SSID', prints name of connected WIFI. 
     WiFi.begin(this->ssid, this->password);
@@ -112,12 +118,12 @@ void _TS_RADIO::wifi_update()
     
   if (this->wifiEnabled)
   {
-    if (!wifi_is_connected())
+    if (!this->wifi_is_connected())
     {
       if (millis() - this->wifiTimerStart > WIFI_RETRY_INTERVAL)
       {
         log_i("Connecting to WiFi.");
-        TS_RADIO.wifi_connect();
+        this->wifi_connect();
         this->wifiTimerStart = millis();
       }
       else
@@ -130,7 +136,7 @@ void _TS_RADIO::wifi_update()
       TS_HAL.ble_deinit();
       log_d("After ble deinit: %d", ESP.getFreeHeap());
       log_i("Downloading tempIds from server");
-      TS_RADIO.download_temp_ids();
+      this->download_temp_ids();
     }
   }
   else
@@ -138,7 +144,7 @@ void _TS_RADIO::wifi_update()
     if (wifi_is_connected())
     {
       log_i("Disconnecting WiFi.");
-      TS_RADIO.wifi_disconnect();
+      this->wifi_disconnect();
       log_i("Initializing BLE.");
       TS_HAL.ble_init();
     }
@@ -151,8 +157,6 @@ void _TS_RADIO::config(char* ssid, char* password, char* uid)
   strcpy(this->ssid, ssid);
   strcpy(this->password, password);
   strcpy(this->uid, uid);
-
-  log_d("Saved uid: %s", this->uid);
 }
 
 void _TS_RADIO::download_temp_ids()

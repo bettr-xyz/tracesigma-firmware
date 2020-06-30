@@ -53,7 +53,8 @@ void setup() {
 
   TS_Storage.settings_save();
 
-  TS_RADIO.config(settings->wifiSsid, settings->wifiPass, settings->userId);
+  // load settings from storage
+  TS_RADIO.init();
 
   OT_ProtocolV2.begin();
 
