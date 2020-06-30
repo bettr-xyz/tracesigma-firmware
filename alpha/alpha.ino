@@ -76,17 +76,18 @@ void loop() {
   TS_HAL.update();
   TS_POWER.update();
 
-  // blink once a second
-  TS_HAL.led_set(TS_Led::Red, true);
-  TS_HAL.sleep(TS_SleepMode::Default, 1);
-  TS_HAL.led_set(TS_Led::Red, false);
-
   // Wifi 
   TS_RADIO.wifi_enable(TS_POWER.get_state() == TS_PowerState::HIGH_POWER);
   TS_RADIO.wifi_update();
 
   if (TS_HAL.ble_is_init())
   {
+
+    // blink once a second
+    TS_HAL.led_set(TS_Led::Red, true);
+    TS_HAL.sleep(TS_SleepMode::Default, 1);
+    TS_HAL.led_set(TS_Led::Red, false);
+    
     // don't turn off radio if we have connected clients
     uint16_t connectedCount = OT_ProtocolV2.get_connected_count();
     uint16_t sleepDuration = TS_HAL.random_get(1000, 3000);
