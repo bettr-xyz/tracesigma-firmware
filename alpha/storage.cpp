@@ -1,12 +1,28 @@
 #include "storage.h"
 #include "hal.h"
+#include "cleanbox.h"
 #include <EEPROM.h>
 
 #define EEPROM_SIZE       1024
 #define SETTINGS_VERSION  0x01
 
+// Cleanup every 5 mins
+#define CLEANUP_MINS      5
+
+#define TEMPPEERS_MAX 100
+#define PEERCACHE_MAX 100
+
+#define TEMPPEERS_MAXAGE 420    // 7 min
+#define PEERCACHE_MAXAGE 1080   // 18 min
+
+#define SECS_PER_DAY 86400
+#define SECS_PER_MIN 60
+
 _TS_Storage TS_Storage;
-_TS_Storage::_TS_Storage() { }
+_TS_Storage::_TS_Storage()
+{
+  lastCleanupMins = 0;
+}
 
 void _TS_Storage::begin()
 {
@@ -29,6 +45,18 @@ void _TS_Storage::begin()
   if(!SPIFFS.begin(true, "/f", 1))
   {
     log_e("SPIFFS init error");
+
+    // no point continuing
+    return;
+  }
+
+  // dump all files
+  log_i("Listing all files");
+  File root = SPIFFS.open("/");
+  File file = root.openNextFile();
+  while(file){
+    log_i("FILE: %s", file.name());
+    file = root.openNextFile();
   }
 }
 
@@ -129,4 +157,66 @@ uint8_t _TS_Storage::file_ids_writeall(uint8_t maxCount, std::string *ids)
   f.close();
   return maxCount;
 }
+
+bool _TS_Storage::peer_log_incident(std::string id, std::string org, std::string deviceType, int8_t rssi, TS_DateTime *current)
+{
+  // if exist in tempPeers, cumulate. If mins >= 5 , insert into peerCache/peermap, delete from tempPeers
+  auto tempPeer = this->tempPeers.find(id);
+  if (tempPeer != this->tempPeers.end())
+  {
+    // found
+  }
+
+  // TODO: evict old entries from tempPeers if low mem
+  
+  
+  // TODO: if id does not exist in peerCache and peermap file, create in peermap and add to peerCache
+
+  // TODO: if exist in tempPeers, cumulate
+  
+
+  
+}
+
+// TODO: other fns
+
+
+
+
+void _TS_Storage::peer_cache_cleanup(TS_DateTime *current)
+{
+  int16_t tDiff = time_diff(current->minute, lastCleanupMins, SECS_PER_MIN);
+
+  int now = time_to_secs(current);
+  bool lowmem = LOWMEM_COND;
+  int tempPeersSize = this->tempPeers.size();
+
+  // Check conditions for cleanup
+  if(!lowmem && !(tDiff > CLEANUP_MINS) && !(tempPeersSize > TEMPPEERS_MAX) && !(this->peerCache.size() > PEERCACHE_MAX))
+  {
+    return;
+  }
+
+  log_i("cache_cleanup");
+
+  // remove tempPeers which are old and probably would've timed out anyway
+  for(auto peer = this->tempPeers.begin(); peer != this->tempPeers.end(); ++peer)
+  {
+    int peerTimeDiff = time_diff(time_to_secs(&peer->second.firstSeen), now, SECS_PER_DAY);
+    if(peerTimeDiff > TEMPPEERS_MAXAGE)
+    {
+      this->tempPeers.erase(peer);
+    }
+  }
+  
+  log_i("Entries removed from tempPeers: %d", (tempPeersSize - this->tempPeers.size()));
+
+
+  // TODO: flush peerCache
+  
+}
+
+
+
+
 
