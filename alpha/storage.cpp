@@ -9,20 +9,24 @@
 // Cleanup every 5 mins
 #define CLEANUP_MINS      5
 
-#define TEMPPEERS_MAX 100
-#define PEERCACHE_MAX 100
+#define TEMPPEERS_MAX     100
+#define PEERCACHE_MAX     30
 
-#define TEMPPEERS_MAXAGE 420    // 7 min
-#define PEERCACHE_MAXAGE 1080   // 18 min
+#define TEMPPEERS_MAXAGE  420    // 7 min
+#define PEERCACHE_MAXAGE  1080   // 18 min
 
-#define SECS_PER_DAY 86400
-#define SECS_PER_MIN 60
+#define SECS_PER_DAY      86400
+#define SECS_PER_MIN      60
+
+
 
 _TS_Storage TS_Storage;
 _TS_Storage::_TS_Storage()
 {
   lastCleanupMins = 0;
 }
+
+
 
 void _TS_Storage::begin()
 {
@@ -183,9 +187,10 @@ bool _TS_Storage::peer_log_incident(std::string id, std::string org, std::string
 
 
 
-void _TS_Storage::peer_cache_cleanup(TS_DateTime *current)
+uint16_t _TS_Storage::peer_cleanup(TS_DateTime *current)
 {
   int16_t tDiff = time_diff(current->minute, lastCleanupMins, SECS_PER_MIN);
+  uint16_t entriesRemoved = 0;
 
   int now = time_to_secs(current);
   bool lowmem = LOWMEM_COND;
@@ -194,25 +199,61 @@ void _TS_Storage::peer_cache_cleanup(TS_DateTime *current)
   // Check conditions for cleanup
   if(!lowmem && !(tDiff > CLEANUP_MINS) && !(tempPeersSize > TEMPPEERS_MAX) && !(this->peerCache.size() > PEERCACHE_MAX))
   {
-    return;
+    return 0;
   }
 
-  log_i("cache_cleanup");
+  log_i("cache_cleanup start, free memory: %d (%d)", FREEMEM, FREEMEM_PCT);
 
+  // To save memory, we don't have an LRU list but simply iterate and strive to remove at most two oldest entries of tempPeers if TEMPPEERS_MAX is exceeded
   // remove tempPeers which are old and probably would've timed out anyway
-  for(auto peer = this->tempPeers.begin(); peer != this->tempPeers.end(); ++peer)
   {
-    int peerTimeDiff = time_diff(time_to_secs(&peer->second.firstSeen), now, SECS_PER_DAY);
-    if(peerTimeDiff > TEMPPEERS_MAXAGE)
+    auto oldest = LargestN<int, std::string>(2);
+    for(auto peer = this->tempPeers.begin(); peer != this->tempPeers.end();)
     {
-      this->tempPeers.erase(peer);
-    }
-  }
+      int peerTimeDiff = time_diff(time_to_secs(&peer->second.firstSeen), now, SECS_PER_DAY);
+      if(peerTimeDiff > TEMPPEERS_MAXAGE)
+      {
+        this->tempPeers.erase(peer++);
+        continue;
+      }
+      
+      if(this->tempPeers.size() > TEMPPEERS_MAX)
+      {
+        // track oldest 2 entries to remove
+        oldest.consider(peerTimeDiff, peer->first);
+      }
   
-  log_i("Entries removed from tempPeers: %d", (tempPeersSize - this->tempPeers.size()));
+      ++peer;
+    }
+  
+    if(this->tempPeers.size() > TEMPPEERS_MAX)
+    {
+      auto keysPtr = oldest.getKeys();
+      for(auto key = keysPtr->begin(); key != keysPtr->end(); ++key)
+      {
+        this->tempPeers.erase(*key);
+      }
+    }
+  
+    entriesRemoved += (tempPeersSize - this->tempPeers.size());
+    log_i("Entries removed from tempPeers: %d", (tempPeersSize - this->tempPeers.size()));
+  }
+
+  // TODO: flush peerCache which are old and should be committed to flash
 
 
-  // TODO: flush peerCache
+
+  log_i("cache_cleanup end, free memory: %d (%d)", FREEMEM, FREEMEM_PCT);
+  return entriesRemoved;
+}
+
+
+
+bool _TS_Storage::peer_cache_commit(std::string key, TS_DateTime *current)
+{
+
+  // TODO:
+  return true;
   
 }
 

@@ -111,9 +111,14 @@ class _TS_Storage
     void peer_prune(uint8_t days, TS_DateTime *current);
 
     // Cleanup when necessary
-    void peer_cache_cleanup(TS_DateTime *current);
+    // Returns: entries removed
+    uint16_t peer_cleanup(TS_DateTime *current);
+
+    // Commits a specific key to flash
+    bool peer_cache_commit(std::string key, TS_DateTime *current);
     
   private:
+  
     TS_Settings settingsRuntime;
 
     // minutes since last cleanup
