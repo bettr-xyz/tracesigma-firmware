@@ -319,6 +319,76 @@ static void register_wifi_cmd(void)
   ESP_ERROR_CHECK( esp_console_cmd_register(&sta_cmd) );
 }
 
+static struct
+{
+  struct arg_lit *get;
+  struct arg_int *upload_flag;
+  struct arg_end *end;
+} flag_args;
+
+static void print_flags(TS_Settings* settings)
+{
+  printf("upload: %d\n\n", 1 ? settings->upload_flag : 0);
+}
+
+static int do_flag_cmd(int argc, char **argv)
+{
+  int nerrors = arg_parse(argc, argv, (void **) &flag_args);
+  if (nerrors != 0)
+  {
+    arg_print_errors(stderr, flag_args.end, argv[0]);
+    return ESP_ERR_INVALID_ARG;
+  }
+
+  TS_Settings* settings = TS_Storage.settings_get();
+
+  if (flag_args.get->count == 1)
+  {
+    print_flags(settings);
+  }
+  else if (flag_args.upload_flag->count == 1)
+  {
+    switch (flag_args.upload_flag->ival[0])
+    {
+      case 0:
+        settings->upload_flag = false;
+        break;
+      case 1:
+        settings->upload_flag = true;
+        break;
+      default:
+        print_cmd_help(argv[0], (void**) &flag_args);
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    TS_Storage.settings_save();
+    printf("Flag settings saved\n\n");
+  }
+  else
+  {
+    print_cmd_help(argv[0], (void**) &flag_args);
+  }
+
+  return ESP_OK;
+}
+
+static void register_flag_cmd()
+{
+  flag_args.get = arg_lit0("g", "get", "get flag settings");
+  flag_args.upload_flag = arg_int0("u", "upload", "<int>", "1: upload temp IDs when WIFI connected, 0: disabled");
+  flag_args.end = arg_end(20);
+
+  const esp_console_cmd_t cmd =
+  {
+    .command = "flag",
+    .help = "Get or set flags",
+    .hint = NULL,
+    .func = &do_flag_cmd,
+    .argtable = &flag_args
+  };
+  ESP_ERROR_CHECK( esp_console_cmd_register(&cmd) );
+}
+
 //
 // Register command callbacks
 // - this has to be at the end after all static functions
@@ -328,6 +398,7 @@ void _TS_SerialCmd::register_commands()
   register_version();
   register_clock_cmd();
   register_wifi_cmd();
+  register_flag_cmd();
   esp_console_register_help_command();
 }
 
