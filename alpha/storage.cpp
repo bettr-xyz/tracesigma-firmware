@@ -19,6 +19,18 @@
 #define SECS_PER_MIN      60
 
 
+struct PeerIncidentFileFrame
+{
+  uint8_t     hh, mm, ss; // first seen
+  uint8_t     mins;       // seen minutes
+  int8_t      rssi_min;
+  int8_t      rssi_max;
+  int16_t     rssi_sum;
+  int8_t      rssi_samples;
+  int16_t     rssi_dsquared;
+};
+
+
 
 _TS_Storage TS_Storage;
 _TS_Storage::_TS_Storage()
@@ -125,13 +137,21 @@ uint32_t _TS_Storage::usedspace_get()
   return SPIFFS.usedBytes();
 }
 
+//
+// File: ids
+//
+
 uint8_t _TS_Storage::file_ids_readall(uint8_t maxCount, std::string *ids)
 {
   // TODO: an optimization is to read only a lookup table, not all the contents
   
   uint8_t count = 0;
   File f = SPIFFS.open("/ids", "r+");
-  if(!f) return 0;
+  if(!f)
+  {
+    log_e("Failed to open file /ids for r+");
+    return 0;
+  }
   
   for(uint8_t i = 0; i < maxCount; ++i)
   {
@@ -150,7 +170,11 @@ uint8_t _TS_Storage::file_ids_writeall(uint8_t maxCount, std::string *ids)
   // TODO: test free space and run cleanup
   
   File f = SPIFFS.open("/ids", "w+");
-  if(!f) return 0;
+  if(!f)
+  {
+    log_e("Failed to open file /ids for w+");
+    return 0;
+  }
 
   for(uint8_t i = 0; i < maxCount; ++i)
   {
@@ -161,6 +185,10 @@ uint8_t _TS_Storage::file_ids_writeall(uint8_t maxCount, std::string *ids)
   f.close();
   return maxCount;
 }
+
+//
+// Peering functions
+// 
 
 bool _TS_Storage::peer_log_incident(std::string id, std::string org, std::string deviceType, int8_t rssi, TS_DateTime *current)
 {
@@ -195,9 +223,10 @@ uint16_t _TS_Storage::peer_cleanup(TS_DateTime *current)
   int now = time_to_secs(current);
   bool lowmem = LOWMEM_COND;
   int tempPeersSize = this->tempPeers.size();
+  int peerCacheSize = this->peerCache.size();
 
   // Check conditions for cleanup
-  if(!lowmem && !(tDiff > CLEANUP_MINS) && !(tempPeersSize > TEMPPEERS_MAX) && !(this->peerCache.size() > PEERCACHE_MAX))
+  if(!lowmem && !(tDiff > CLEANUP_MINS) && !(tempPeersSize > TEMPPEERS_MAX) && !(peerCacheSize > PEERCACHE_MAX))
   {
     return 0;
   }
@@ -234,14 +263,48 @@ uint16_t _TS_Storage::peer_cleanup(TS_DateTime *current)
         this->tempPeers.erase(*key);
       }
     }
-  
-    entriesRemoved += (tempPeersSize - this->tempPeers.size());
-    log_i("Entries removed from tempPeers: %d", (tempPeersSize - this->tempPeers.size()));
+
+    int tempPeersRemoved = tempPeersSize - this->tempPeers.size();
+    entriesRemoved += tempPeersRemoved;
+    log_i("Entries removed from tempPeers: %d", tempPeersRemoved);
   }
 
-  // TODO: flush peerCache which are old and should be committed to flash
+  // flush peerCache which are old and should be committed to flash
+  {
+    auto oldest = LargestN<int, std::string>(2);
+    for(auto peer = this->peerCache.begin(); peer != this->peerCache.end();)
+    {
+      int peerTimeDiff = time_diff(time_to_secs(&peer->second.firstSeen), now, SECS_PER_DAY);
+      if(peerTimeDiff > PEERCACHE_MAXAGE)
+      {
+        // commit and remove old entries
+        auto tPeer = peer++;
+        this->peer_cache_commit(tPeer->first, &tPeer->second, current);
+        continue;
+      }
 
+      if(this->peerCache.size() > PEERCACHE_MAX)
+      {
+        // track oldest 2 entries to commit
+        oldest.consider(peerTimeDiff, peer->first);
+      }
 
+      ++peer;
+    }
+
+    if(this->peerCache.size() > PEERCACHE_MAX)
+    {
+      auto keysPtr = oldest.getKeys();
+      for(auto key = keysPtr->begin(); key != keysPtr->end(); ++key)
+      {
+        this->peer_cache_commit(*key, &this->peerCache[*key], current);
+      }
+    }
+
+    int peerCacheRemoved = peerCacheSize - this->peerCache.size();
+    entriesRemoved += peerCacheRemoved;
+    log_i("Entries removed from peerCache: %d", peerCacheRemoved);
+  }
 
   log_i("cache_cleanup end, free memory: %d (%d)", FREEMEM, FREEMEM_PCT);
   return entriesRemoved;
@@ -249,15 +312,114 @@ uint16_t _TS_Storage::peer_cleanup(TS_DateTime *current)
 
 
 
-bool _TS_Storage::peer_cache_commit(std::string key, TS_DateTime *current)
+void _TS_Storage::peer_cache_commit(const std::string &key, TS_Peer *peer, TS_DateTime *current)
 {
-
-  // TODO:
-  return true;
+  // get id
+  uint16_t id = this->peer_id_get_or_add(key, peer);
+  peer->id = id;
   
+  // append to entry
+  this->peer_incident_add(peer);
+
+  // erase from peercache
+  this->peerCache.erase(key);
 }
 
 
+
+void _TS_Storage::peer_cache_commit_all(TS_DateTime *current)
+{
+  for(auto peer = this->peerCache.begin(); peer != this->peerCache.end();)
+  {
+    // save iterator as commit will erase entry
+    auto tmpPeer = peer++;
+    this->peer_cache_commit(tmpPeer->first, &tmpPeer->second, current);
+  }
+}
+
+//
+// Peer file functions
+//
+
+uint16_t _TS_Storage::peer_id_get_or_add(const std::string &tempId, TS_Peer *peer)
+{
+  // TODO: should we wipe file if corrupted?
+  
+  // File is /p/[mmdd]
+  // - tempid,id,org,deviceType\n
+  
+  char filename[10];
+  sprintf(filename, "/p/%02d%02d", peer->firstSeen.month, peer->firstSeen.day);
+  uint16_t id = 0;
+  String dummy;
+
+  // Open file for read
+  File f = SPIFFS.open(filename, "a+");
+  if(!f)
+  {
+    log_e("Failed to open file %s for a+", filename);
+    return 0;
+  }
+
+  // file exist, look for tempid
+  while(f.available())
+  {
+    String fTid = f.readStringUntil(',');
+    String fId = f.readStringUntil(',');
+    dummy = f.readStringUntil(',');
+    dummy = f.readStringUntil('\n');
+
+    // take note of last id
+    id = atoi(fId.c_str());
+
+    if(tempId.compare(fTid.c_str()) == 0)
+    {
+      // found
+      f.close();
+      return id;
+    }
+  }
+
+  // use last id +1
+  ++id;
+
+  // append new entry
+  f.printf("%s,%d,%s,%s\n", tempId, id, peer->org, peer->deviceType);
+  f.close();
+  return id;
+}
+
+void _TS_Storage::peer_incident_add(TS_Peer *peer)
+{
+  // File is /p/[mmdd]/[id]
+  // - tempid,id,org,deviceType\n
+  
+  char filename[14];
+  sprintf(filename, "/p/%02d%02d/%d", peer->firstSeen.month, peer->firstSeen.day, peer->id);
+
+  // Open file for append
+  File f = SPIFFS.open(filename, "a+");
+  if(!f)
+  {
+    log_e("Failed to open file %s for a+", filename);
+    return;
+  }
+
+  PeerIncidentFileFrame frame = {
+    .hh = peer->firstSeen.hour,
+    .mm = peer->firstSeen.minute,
+    .ss = peer->firstSeen.second,
+    .mins = peer->mins,
+    .rssi_min = peer->rssi_min,
+    .rssi_max = peer->rssi_max,
+    .rssi_sum = peer->rssi_sum,
+    .rssi_samples = peer->rssi_samples,
+    .rssi_dsquared = peer->rssi_dsquared,
+  };
+
+  f.write((byte *)&frame, sizeof(frame));
+  f.close();
+}
 
 
 
