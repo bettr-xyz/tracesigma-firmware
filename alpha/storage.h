@@ -24,6 +24,7 @@ struct TS_Settings
   
   char wifiSsid[32];
   char wifiPass[32];
+  bool upload_flag;
 };
 
 
