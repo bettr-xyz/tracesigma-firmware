@@ -1,9 +1,7 @@
 //
 // Persistent storage support for Flash based things such as
 // - EEPROM
-// --- RAM-backed mirror for working copy
 // - Filesystem
-// --- RAM-backed read cache, write-back cache
 
 #ifndef __TS_STORAGE__
 #define __TS_STORAGE__
@@ -26,27 +24,15 @@ struct TS_Settings
   char wifiPass[32];
 };
 
-struct TS_TempPeer
-{
-  TS_DateTime firstSeen;
-  std::string org;
-  std::string deviceType;
-  uint8_t     mins;
-  int8_t      rssi_min;
-  int8_t      rssi_max;
-  int16_t     rssi_sum;
-  int8_t      rssi_samples;
-  int16_t     rssi_dsquared;
-};
-
 struct TS_Peer
 {
-  uint16_t id;
+  uint16_t id;  // may not be used until just about to store
+  
   std::string org;
   std::string deviceType;
 
   // Incident
-  uint8_t     hh, mm, ss;
+  TS_DateTime firstSeen;
   uint8_t     mins;
   int8_t      rssi_min;
   int8_t      rssi_max;
@@ -99,6 +85,10 @@ class _TS_Storage
     // write all ids of maxCount, returns count of ids written
     uint8_t file_ids_writeall(uint8_t maxCount, std::string *ids);
 
+    //
+    // Peering functions
+    // 
+
     // Log incident for OTv2 protocol
     bool peer_log_incident(std::string id, std::string org, std::string deviceType, int8_t rssi, TS_DateTime *current);
 
@@ -114,8 +104,11 @@ class _TS_Storage
     // Returns: entries removed
     uint16_t peer_cleanup(TS_DateTime *current);
 
-    // Commits a specific key to flash
-    bool peer_cache_commit(std::string key, TS_DateTime *current);
+    // Commits a specific key to flash and removes entry from peerCache
+    void peer_cache_commit(const std::string &key, TS_Peer *peer, TS_DateTime *current);
+
+    // Commit all entries to flash, useful when gracefully shutting down
+    void peer_cache_commit_all(TS_DateTime *current);
     
   private:
   
@@ -124,13 +117,23 @@ class _TS_Storage
     // minutes since last cleanup
     uint8_t lastCleanupMins;
 
-    // Peers which are < 5min
-    std::map<std::string, TS_TempPeer> tempPeers;
+    // Incident peers which are < 5min
+    std::map<std::string, TS_Peer> tempPeers;
 
     // Peers which are >= 5min
-    // Data is cached here until flushed to file, could be 5 or 15 mins
+    // Data is cached here until flushed to file, could be 5 - 18 mins thereabouts
     std::map<std::string, TS_Peer> peerCache;
 
+    //
+    // Peer file functions
+    //
+
+    // Get an existing or add new peer id
+    // - typically only used if entry is not in peerCache
+    uint16_t peer_id_get_or_add(const std::string &tempId, TS_Peer *peer);
+
+    // Append incident to peer incident file
+    void peer_incident_add(TS_Peer *peer);
 };
 
 extern _TS_Storage TS_Storage;
