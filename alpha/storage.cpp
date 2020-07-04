@@ -21,8 +21,8 @@
 
 struct PeerIncidentFileFrame
 {
-  uint8_t     hh, mm, ss; // first seen
-  uint8_t     mins;       // seen minutes
+  TS_DateTime firstSeen;
+  uint8_t     mins;
   int8_t      rssi_min;
   int8_t      rssi_max;
   int16_t     rssi_sum;
@@ -32,13 +32,50 @@ struct PeerIncidentFileFrame
 
 
 
+//
+// TS_PeerIterator
+//
+
+TS_PeerIterator::TS_PeerIterator()
+: validPeer(false), validIncident(false)
+{ 
+}
+
+TS_PeerIterator::~TS_PeerIterator()
+{
+  if(fileId)
+  {
+    fileId.close();
+  }
+
+  if(fileIncident)
+  {
+    fileIncident.close();
+  }
+}
+
+std::string * TS_PeerIterator::getPeerId()
+{
+  if(!validPeer) return NULL;
+  return &this->peerId;
+}
+
+TS_Peer * TS_PeerIterator::getPeerIncident()
+{
+  if(!validIncident) return NULL;
+  return &this->peer;
+}
+
+
+//
+// TS_Storage
+//
+
 _TS_Storage TS_Storage;
 _TS_Storage::_TS_Storage()
 {
   lastCleanupMins = 0;
 }
-
-
 
 void _TS_Storage::begin()
 {
@@ -72,8 +109,10 @@ void _TS_Storage::begin()
   File file = root.openNextFile();
   while(file){
     log_i("FILE: %s", file.name());
+    file.close();
     file = root.openNextFile();
   }
+  root.close();
 }
 
 
@@ -210,8 +249,134 @@ bool _TS_Storage::peer_log_incident(std::string id, std::string org, std::string
   
 }
 
-// TODO: other fns
+TS_PeerIterator* _TS_Storage::peer_get_next(TS_PeerIterator* it)
+{
+  if(it == NULL)
+  {
+    // Initialize new iterator
+    it = new TS_PeerIterator();
 
+    // List all files of /p/[mmdd]
+    // Ignore files of /p/[mmdd]/*
+    File root = SPIFFS.open("/p/");
+    File file = root.openNextFile();
+    while(file){
+      if(!file.isDirectory())
+      {
+        // a file
+        it->dayFileNames.push_back(std::string(file.name()));
+      }
+      
+      file.close();
+      file = root.openNextFile();
+    }
+    root.close();
+  }
+
+  // Reset file ptrs if they still exist
+  it->validPeer = false;
+  it->validIncident = false;
+  if(it->fileId)
+  {
+    it->fileId.close();
+  }
+  
+  if(it->fileIncident)
+  {
+    it->fileIncident.close();
+  }
+  
+  // Get next dayfile
+  it->dayFileName = it->dayFileNames.front();
+  it->dayFileNames.pop_front();
+
+  it->fileId = SPIFFS.open(it->dayFileName.c_str(), "r");
+  if(!it->fileId)
+  {
+    log_e("Failed to open file %s for r", it->dayFileName);
+    delete it;
+    return NULL;
+  }
+
+  // get first incident
+  this->peer_get_next_peer(it);
+  return it;
+}
+
+TS_PeerIterator* _TS_Storage::peer_get_next_peer(TS_PeerIterator* it)
+{
+  if(it == NULL) return NULL;
+  it->validPeer = false;
+  it->validIncident = false;
+  if(!it->fileId)
+  {
+    log_e("Peer file not open");
+    return it;
+  }
+  
+  if(it->fileIncident)
+  {
+    it->fileIncident.close();
+  }
+  
+  // Get the next entry in file
+  // File is /p/[mmdd]
+  // - tempid,id,org,deviceType\n
+  if(it->fileId.available())
+  {
+    it->peerId = std::string( it->fileId.readStringUntil(',').c_str() );
+    it->peer.id = atoi( it->fileId.readStringUntil(',').c_str() );
+    it->peer.org = std::string( it->fileId.readStringUntil(',').c_str() );
+    it->peer.deviceType = std::string( it->fileId.readStringUntil('\n').c_str() );
+
+    char filename[14];
+    sprintf(filename, "%s/%d", it->dayFileName, it->peer.id);
+    it->fileIncident = SPIFFS.open(filename, "r");
+    if(!it->fileIncident)
+    {
+      log_e("Failed to open file %s for a+", filename);
+      return it;
+    }
+
+    it->validPeer = true;
+
+    // get next incident
+    this->peer_get_next_incident(it);
+  }
+
+  return it;
+}
+
+TS_PeerIterator* _TS_Storage::peer_get_next_incident(TS_PeerIterator* it)
+{
+  if(it == NULL) return NULL;
+  it->validIncident = false;
+  if(!it->fileIncident)
+  {
+    log_e("Peer Incident file not open");
+    return it;
+  }
+
+  // Get the next entry in file
+  if(it->fileIncident.available())
+  {
+    PeerIncidentFileFrame frame;
+    it->fileIncident.read((byte *)&frame, sizeof(frame));
+
+    // populate peer data
+    it->peer.firstSeen = frame.firstSeen;
+    it->peer.mins = frame.mins;
+    it->peer.rssi_min = frame.rssi_min;
+    it->peer.rssi_max = frame.rssi_max;
+    it->peer.rssi_sum = frame.rssi_sum;
+    it->peer.rssi_samples = frame.rssi_samples;
+    it->peer.rssi_dsquared = frame.rssi_dsquared;
+
+    it->validIncident = true;
+  }
+
+  return it;
+}
 
 
 
@@ -305,6 +470,8 @@ uint16_t _TS_Storage::peer_cleanup(TS_DateTime *current)
     entriesRemoved += peerCacheRemoved;
     log_i("Entries removed from peerCache: %d", peerCacheRemoved);
   }
+
+  lastCleanupMins = current->minute;
 
   log_i("cache_cleanup end, free memory: %d (%d)", FREEMEM, FREEMEM_PCT);
   return entriesRemoved;
@@ -406,9 +573,7 @@ void _TS_Storage::peer_incident_add(TS_Peer *peer)
   }
 
   PeerIncidentFileFrame frame = {
-    .hh = peer->firstSeen.hour,
-    .mm = peer->firstSeen.minute,
-    .ss = peer->firstSeen.second,
+    .firstSeen = peer->firstSeen,
     .mins = peer->mins,
     .rssi_min = peer->rssi_min,
     .rssi_max = peer->rssi_max,

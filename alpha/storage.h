@@ -7,9 +7,8 @@
 #define __TS_STORAGE__
 
 #include "hal.h"
-
 #include <SPIFFS.h>
-
+#include <list>
 
 //
 // Classes
@@ -41,10 +40,30 @@ struct TS_Peer
   int16_t     rssi_dsquared;
 };
 
-struct TS_PeerIterator
+class _TS_Storage;
+class TS_PeerIterator
 {
+  friend class _TS_Storage;
   
-  // TODO
+  public:
+    TS_PeerIterator();
+    virtual ~TS_PeerIterator();
+
+    std::string *getPeerId();
+    TS_Peer *getPeerIncident();
+    
+  protected:
+    std::list<std::string> dayFileNames;
+    std::string dayFileName;
+    
+    File fileId;
+    File fileIncident;
+
+    bool validPeer;
+    std::string peerId;
+
+    bool validIncident;
+    TS_Peer peer;
 };
 
 
@@ -92,16 +111,20 @@ class _TS_Storage
     // Log incident for OTv2 protocol
     bool peer_log_incident(std::string id, std::string org, std::string deviceType, int8_t rssi, TS_DateTime *current);
 
-    // Obtain an iterator for reading through incidents
-    // TODO
-    TS_PeerIterator* peer_get_next_iterator(TS_PeerIterator* it);
+    // Obtain an iterator to get next day
+    // - delete after use
+    TS_PeerIterator* peer_get_next(TS_PeerIterator* it);
+    TS_PeerIterator* peer_get_next_peer(TS_PeerIterator* it);     // Get next peer
+    TS_PeerIterator* peer_get_next_incident(TS_PeerIterator* it); // Get next incident of current peer
 
-    // Delete the last N days of incidents
+    // Delete the last N days of incidents depending on free space
     // TODO
     void peer_prune(uint8_t days, TS_DateTime *current);
 
     // Cleanup when necessary
-    // Returns: entries removed
+    // - ideally run once before logging peers
+    // - run at least once a minute
+    // Returns: number of entries removed
     uint16_t peer_cleanup(TS_DateTime *current);
 
     // Commits a specific key to flash and removes entry from peerCache
