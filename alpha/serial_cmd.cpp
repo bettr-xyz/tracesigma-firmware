@@ -425,6 +425,7 @@ static struct
 {
   struct arg_lit *get;
   struct arg_str *set;
+  struct arg_lit *ram_flag;
   struct arg_end *end;
 } userid_args;
 
@@ -450,8 +451,7 @@ static int do_userid_cmd(int argc, char **argv)
   else if (userid_args.set->count == 1)
   {
     check_copy_str_setting(userid_args.set->sval[0], settings->userId);
-    TS_Storage.settings_save();
-    printf("Setting saved\n\n");
+    save_to_RAM_or_EEPROM(userid_args.ram_flag);
   }
   /* user didn't provide args, print help */
   else
@@ -466,6 +466,7 @@ static void register_userid_cmd(void)
 {
   userid_args.get = arg_lit0("g", "get", "get userID");
   userid_args.set = arg_str0("s", "set", NULL, "set userID");
+  userid_args.ram_flag = arg_lit0("r", "ram", "[debug] save to RAM not EEPROM, will not persist after power cycle (e.g. userid -s abc -r)");
   userid_args.end = arg_end(20);
 
   const esp_console_cmd_t sta_cmd =
