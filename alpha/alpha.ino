@@ -61,7 +61,6 @@ void set_default_settings()
   {
     TS_Storage.settings_save();
   }
-
 }
 
 void setup() {

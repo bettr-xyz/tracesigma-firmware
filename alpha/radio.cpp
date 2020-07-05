@@ -224,15 +224,16 @@ void _TS_RADIO::download_temp_ids(char* userId)
       JsonArray result_tempIDs = result["tempIDs"];
 
       OT_TempID tempIds[OT_TEMPID_MAX];
-
-      JsonObject result_tempIDs_0 = result_tempIDs[0];
-      const char* result_tempIDs_0_tempID = result_tempIDs_0["tempID"];
-      long result_tempIDs_0_startTime = result_tempIDs_0["startTime"]; 
-      long result_tempIDs_0_expiryTime = result_tempIDs_0["expiryTime"];
     
-      log_d("tempID_0 id: %s", result_tempIDs_0_tempID);
-      log_d("tempID_0 start: %ld", result_tempIDs_0_startTime);
-      log_d("tempID_0 expiry: %ld", result_tempIDs_0_expiryTime);
+      log_d("tempID_0 id: %s", result_tempIDs[0]["tempID"]);
+      log_d("tempID_0 start: %ld", result_tempIDs[0]["startTime"]);
+      log_d("tempID_0 expiry: %ld", result_tempIDs[0]["expiryTime"]);
+
+      for (int i = 0; i < OT_TEMPID_MAX; i++)
+      {
+        std::string tempId = result_tempIDs[i]["tempID"];
+        tempIds[i] = tempId;
+      }
 
       log_d("Saving TempIDs to storage");
       if(TS_Storage.file_ids_writeall(OT_TEMPID_MAX, tempIds) != OT_TEMPID_MAX)
