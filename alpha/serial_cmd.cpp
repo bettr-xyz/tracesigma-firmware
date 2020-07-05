@@ -297,27 +297,11 @@ static int do_wifi_cmd(int argc, char **argv)
   {
     if (wifi_args.ssid->count == 1)
     {
-      size_t ssid_strlen = strlen(wifi_args.ssid->sval[0]);
-      if (ssid_strlen <= STR_ARG_MAXLEN)
-      {
-        strcpy(settings->wifiSsid, wifi_args.ssid->sval[0]);
-      }
-      else
-      {
-        printf("SSID exceeds max string length of %d\n\n", STR_ARG_MAXLEN);
-      }
+      check_copy_str_setting(wifi_args.ssid->sval[0], settings->wifiSsid);
     }
     if (wifi_args.password->count == 1)
     {
-      size_t pass_strlen = strlen(wifi_args.password->sval[0]);
-      if (pass_strlen <= STR_ARG_MAXLEN)
-      {
-        strcpy(settings->wifiPass, wifi_args.password->sval[0]);
-      }
-      else
-      {
-        printf("Password exceeds max string length of %d\n\n", STR_ARG_MAXLEN);
-      }
+      check_copy_str_setting(wifi_args.password->sval[0], settings->wifiPass);
     }
     save_to_RAM_or_EEPROM(wifi_args.ram_flag);
   }
