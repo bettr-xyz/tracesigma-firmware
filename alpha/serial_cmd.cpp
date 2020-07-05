@@ -144,6 +144,20 @@ static void print_cmd_help(char* cmd_name, void** argtable)
   arg_print_glossary_gnu(stdout, argtable);
 }
 
+static void save_to_RAM_or_EEPROM(struct arg_lit *ram_flag)
+{
+  printf("Saved to: ");
+  if (ram_flag->count == 1)
+  {
+    printf("RAM\n\n");
+  }
+  else
+  {
+    TS_Storage.settings_save();
+    printf("EEPROM\n\n");
+  }
+}
+
 static int get_version(int argc, char **argv)
 {
   esp_chip_info_t info;
@@ -222,6 +236,7 @@ static struct
   struct arg_lit *get;
   struct arg_str *ssid;
   struct arg_str *password;
+  struct arg_lit *ram_flag;
   struct arg_end *end;
 } wifi_args;
 
@@ -271,8 +286,7 @@ static int do_wifi_cmd(int argc, char **argv)
         printf("Password exceeds max string length of %d\n\n", STR_ARG_MAXLEN);
       }
     }
-    TS_Storage.settings_save();
-    printf("WIFI settings saved\n\n");
+    save_to_RAM_or_EEPROM(wifi_args.ram_flag);
   }
   /* user didn't provide args, print help */
   else
@@ -305,6 +319,7 @@ static void register_wifi_cmd(void)
   wifi_args.get = arg_lit0("g", "get", "get WIFI settings");
   wifi_args.ssid = arg_str0("s", "ssid", NULL, "set SSID, wrap in quotes \"\" if contains space");
   wifi_args.password = arg_str0("p", "pass", NULL, "set password");
+  wifi_args.ram_flag = arg_lit0("r", "ram", "[debug] save to RAM not EEPROM, will not persist after power cycle (e.g. wifi -s abc -r)");
   wifi_args.end = arg_end(20);
 
   const esp_console_cmd_t sta_cmd =
@@ -323,6 +338,7 @@ static struct
 {
   struct arg_lit *get;
   struct arg_int *upload_flag;
+  struct arg_lit *ram_flag;
   struct arg_end *end;
 } flag_args;
 
@@ -360,9 +376,7 @@ static int do_flag_cmd(int argc, char **argv)
         print_cmd_help(argv[0], (void**) &flag_args);
         return ESP_ERR_INVALID_ARG;
     }
-
-    TS_Storage.settings_save();
-    printf("Flag settings saved\n\n");
+    save_to_RAM_or_EEPROM(flag_args.ram_flag);
   }
   else
   {
@@ -376,6 +390,7 @@ static void register_flag_cmd()
 {
   flag_args.get = arg_lit0("g", "get", "get flag settings");
   flag_args.upload_flag = arg_int0("u", "upload", "<int>", "1: upload temp IDs when WIFI connected, 0: disabled");
+  flag_args.ram_flag = arg_lit0("r", "ram", "[debug] save to RAM not EEPROM, will not persist after power cycle (e.g. flag -u 1 -r)");
   flag_args.end = arg_end(20);
 
   const esp_console_cmd_t cmd =
