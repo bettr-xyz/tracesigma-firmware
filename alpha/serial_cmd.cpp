@@ -248,6 +248,23 @@ static int do_clock_cmd(int argc, char **argv)
   return ESP_OK;
 }
 
+static void register_clock_cmd()
+{
+  clock_args.get = arg_lit0("g", "get", "get datetime");
+  clock_args.set = arg_date0("s", "set", "%Y-%m-%dT%H:%M:%S", NULL, "set datetime");
+  clock_args.end = arg_end(20);
+
+  const esp_console_cmd_t cmd =
+  {
+    .command = "clock",
+    .help = "Get or set datetime",
+    .hint = NULL,
+    .func = &do_clock_cmd,
+    .argtable = &clock_args
+  };
+  ESP_ERROR_CHECK( esp_console_cmd_register(&cmd) );
+}
+
 static struct
 {
   struct arg_lit *get;
@@ -312,23 +329,6 @@ static int do_wifi_cmd(int argc, char **argv)
   }
 
   return ESP_OK;
-}
-
-static void register_clock_cmd()
-{
-  clock_args.get = arg_lit0("g", "get", "get datetime");
-  clock_args.set = arg_date0("s", "set", "%Y-%m-%dT%H:%M:%S", NULL, "set datetime");
-  clock_args.end = arg_end(20);
-
-  const esp_console_cmd_t cmd =
-  {
-    .command = "clock",
-    .help = "Get or set datetime",
-    .hint = NULL,
-    .func = &do_clock_cmd,
-    .argtable = &clock_args
-  };
-  ESP_ERROR_CHECK( esp_console_cmd_register(&cmd) );
 }
 
 static void register_wifi_cmd(void)
@@ -403,6 +403,24 @@ static int do_flag_cmd(int argc, char **argv)
   return ESP_OK;
 }
 
+static void register_flag_cmd()
+{
+  flag_args.get = arg_lit0("g", "get", "get flag settings");
+  flag_args.upload_flag = arg_int0("u", "upload", "<int>", "1: upload temp IDs when WIFI connected, 0: disabled");
+  flag_args.ram_flag = arg_lit0("r", "ram", "[debug] save to RAM not EEPROM, will not persist after power cycle (e.g. flag -u 1 -r)");
+  flag_args.end = arg_end(20);
+
+  const esp_console_cmd_t cmd =
+  {
+    .command = "flag",
+    .help = "Get or set flags",
+    .hint = NULL,
+    .func = &do_flag_cmd,
+    .argtable = &flag_args
+  };
+  ESP_ERROR_CHECK( esp_console_cmd_register(&cmd) );
+}
+
 static struct
 {
   struct arg_lit *get;
@@ -442,24 +460,6 @@ static int do_userid_cmd(int argc, char **argv)
   }
 
   return ESP_OK;
-}
-
-static void register_flag_cmd()
-{
-  flag_args.get = arg_lit0("g", "get", "get flag settings");
-  flag_args.upload_flag = arg_int0("u", "upload", "<int>", "1: upload temp IDs when WIFI connected, 0: disabled");
-  flag_args.ram_flag = arg_lit0("r", "ram", "[debug] save to RAM not EEPROM, will not persist after power cycle (e.g. flag -u 1 -r)");
-  flag_args.end = arg_end(20);
-
-  const esp_console_cmd_t cmd =
-  {
-    .command = "flag",
-    .help = "Get or set flags",
-    .hint = NULL,
-    .func = &do_flag_cmd,
-    .argtable = &flag_args
-  };
-  ESP_ERROR_CHECK( esp_console_cmd_register(&cmd) );
 }
 
 static void register_userid_cmd(void)
