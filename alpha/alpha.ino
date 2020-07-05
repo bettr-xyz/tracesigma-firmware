@@ -52,9 +52,6 @@ void setup() {
 
   TS_Storage.settings_save();
 
-  // load settings from storage
-  TS_RADIO.init();
-
   OT_ProtocolV2.begin();
 
   TS_POWER.init();

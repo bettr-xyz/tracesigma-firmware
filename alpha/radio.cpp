@@ -17,7 +17,9 @@
 #define HTTPS_PORT 443
 const PROGMEM char* host = "asia-east2-bettr-trace-1.cloudfunctions.net";
 const PROGMEM char* uri_getTempIDs = "/getTempIDs";
-const PROGMEM char* endOfHeaders = "\r\n\r\n";
+const PROGMEM char* body_template = "{\"data\":{\"uid\":\"%s\"}}";
+const PROGMEM char* post_request_template = "POST %s HTTP/1.1\r\nHost: %s\r\nContent-Type: application/json\r\nContent-Length: %d\r\n\r\n%s";
+const PROGMEM char* end_of_headers = "\r\n\r\n";
 const PROGMEM char* root_ca = \
     "-----BEGIN CERTIFICATE-----\n" \
     "MIIDujCCAqKgAwIBAgILBAAAAAABD4Ym5g0wDQYJKoZIhvcNAQEFBQAwTDEgMB4G\n" \
@@ -48,27 +50,19 @@ _TS_RADIO TS_RADIO;
 _TS_RADIO::_TS_RADIO() {
   this->wifiEnabled = false;
   this->wifiTimerStart = -(WIFI_RETRY_INTERVAL);
-
-  strcpy(this->ssid, "");
-  strcpy(this->password, "");
-  strcpy(this->uid, "");
 }
 
-void _TS_RADIO::init() {
-  TS_Settings* settings = TS_Storage.settings_get();
-  this->config(settings->wifiSsid, settings->wifiPass, settings->userId);
-}
 
 //
 // Connect to WIFI
 // Scans for SSIDs, if preset SSID is found, attempt to connect, 
 // else prints the failed connection attempt. 
-void _TS_RADIO::wifi_connect()
+void _TS_RADIO::wifi_connect(char* wifiSsid, char* wifiPass)
 {
-  if (this->wifi_scan_networks())
+  if (this->wifi_scan_networks(wifiSsid))
   {
     //Attempt to connect to 'WIFI_SSID', prints name of connected WIFI. 
-    WiFi.begin(this->ssid, this->password);
+    WiFi.begin(wifiSsid, wifiPass);
     log_i("Connecting to WIFI: %s", WiFi.SSID());
   } 
   else 
@@ -88,14 +82,14 @@ bool _TS_RADIO::wifi_is_connected()
 }
 
 // Returns true if network is available to connect
-bool _TS_RADIO::wifi_scan_networks()
+bool _TS_RADIO::wifi_scan_networks(char* knownSsid)
 {
   WiFi.mode(WIFI_STA);
   WiFi.disconnect();
   int SSID_COUNT = WiFi.scanNetworks();
   for(int i = 0; i < SSID_COUNT; i++)
   {
-    if(strcmp(WiFi.SSID(i).c_str(), this->ssid) == 0)
+    if(strcmp(WiFi.SSID(i).c_str(), knownSsid) == 0)
     {
       log_i("Known networks are available");
       return true;
@@ -118,12 +112,14 @@ void _TS_RADIO::wifi_update()
     
   if (this->wifiEnabled)
   {
+    TS_Settings* settings = TS_Storage.settings_get();
+
     if (!this->wifi_is_connected())
     {
       if (millis() - this->wifiTimerStart > WIFI_RETRY_INTERVAL)
       {
         log_i("Connecting to WiFi.");
-        this->wifi_connect();
+        this->wifi_connect(settings->wifiSsid, settings->wifiPass);
         this->wifiTimerStart = millis();
       }
       else
@@ -136,7 +132,7 @@ void _TS_RADIO::wifi_update()
       TS_HAL.ble_deinit();
       log_d("After ble deinit: %d", ESP.getFreeHeap());
       log_i("Downloading tempIds from server");
-      this->download_temp_ids();
+      this->download_temp_ids(settings->userId);
     }
   }
   else
@@ -152,17 +148,11 @@ void _TS_RADIO::wifi_update()
   
 }
 
-void _TS_RADIO::config(char* ssid, char* password, char* uid)
+void _TS_RADIO::download_temp_ids(char* userId)
 {
-  strcpy(this->ssid, ssid);
-  strcpy(this->password, password);
-  strcpy(this->uid, uid);
-}
 
-void _TS_RADIO::download_temp_ids()
-{
-  log_d("BEGIN LEAKY: %d", ESP.getFreeHeap());
   WiFiClientSecure *client = new WiFiClientSecure;
+
   if (client)
   {
     client->setCACert(root_ca);
@@ -174,15 +164,14 @@ void _TS_RADIO::download_temp_ids()
       return;
     }
 
-    char body[52];
-    sprintf(body, "{\"data\":{\"uid\":\"%s\"}}", this->uid);
+    uint8_t body_size = strlen(body_template) + strlen(userId) - 2 + 1; // -2 for format characters
+    char body[body_size];
+    sprintf(body, body_template, userId);
 
-    String postRequest = 
-      String("POST ") + uri_getTempIDs + " HTTP/1.1\r\n" + 
-      "Host: " + host + "\r\n" + 
-      "Content-Type: application/json\r\n" + 
-      "Content-Length: " + strlen(body) + "\r\n" + 
-      "\r\n" + body;
+    uint8_t request_size = strlen(post_request_template) + strlen(uri_getTempIDs) + strlen(host) + strlen(body) - 6 + 1; // -6 for format characters
+
+    char postRequest[request_size]; // max request size is 182 with uid of length 31
+    sprintf(postRequest, post_request_template, uri_getTempIDs, host, strlen(body), body);
 
     client->print(postRequest);
 
@@ -202,8 +191,8 @@ void _TS_RADIO::download_temp_ids()
     }
 
     // Skip HTTP headers
-    if (!client->find(endOfHeaders)) {
-      log_e("Invalid response");
+    if (!client->find(end_of_headers)) {
+      log_w("Invalid response");
       client->stop();
       return;
     }
@@ -216,7 +205,7 @@ void _TS_RADIO::download_temp_ids()
     DeserializationError error = deserializeJson(doc, *client);
     if (error) 
     {
-      log_e("deserializeJson() failed: %s", error.c_str());
+      log_w("deserializeJson() failed: %s", error.c_str());
       client->stop();
       return;
     }
@@ -226,7 +215,7 @@ void _TS_RADIO::download_temp_ids()
 
     if (strcmp(result_status, "SUCCESS") != 0)
     {
-      log_e("Error in JSON result status");
+      log_w("Error in JSON result status");
     }
     else
     {
@@ -255,6 +244,6 @@ void _TS_RADIO::download_temp_ids()
     // Disconnect
     client->stop();
     delete client;
+
   }
-  log_d("END LEAKY: %d", ESP.getFreeHeap());
 }
