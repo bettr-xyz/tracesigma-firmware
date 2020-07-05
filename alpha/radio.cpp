@@ -225,7 +225,7 @@ void _TS_RADIO::download_temp_ids(char* userId)
 
       OT_TempID tempIds[OT_TEMPID_MAX];
     
-      log_d("tempID_0 id: %s", result_tempIDs[0]["tempID"]);
+      log_d("tempID_0 id: %s", result_tempIDs[0]["tempID"].as<const char*>());
       log_d("tempID_0 start: %ld", result_tempIDs[0]["startTime"]);
       log_d("tempID_0 expiry: %ld", result_tempIDs[0]["expiryTime"]);
 
