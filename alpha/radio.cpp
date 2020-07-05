@@ -18,7 +18,13 @@
 const PROGMEM char* host = "asia-east2-bettr-trace-1.cloudfunctions.net";
 const PROGMEM char* uri_getTempIDs = "/getTempIDs";
 const PROGMEM char* body_template = "{\"data\":{\"uid\":\"%s\"}}";
-const PROGMEM char* post_request_template = "POST %s HTTP/1.1\r\nHost: %s\r\nContent-Type: application/json\r\nContent-Length: %d\r\n\r\n%s";
+const PROGMEM char* post_request_template = \
+    "POST %s HTTP/1.1\r\n"               \ 
+    "Host: %s\r\n"                       \ 
+    "Content-Type: application/json\r\n" \
+    "Content-Length: %d\r\n"             \ 
+    "\r\n"                               \
+    "%s";
 const PROGMEM char* end_of_headers = "\r\n\r\n";
 const PROGMEM char* root_ca = \
     "-----BEGIN CERTIFICATE-----\n" \
