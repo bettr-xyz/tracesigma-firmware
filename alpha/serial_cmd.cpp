@@ -241,8 +241,7 @@ static int do_clock_cmd(int argc, char **argv)
   } 
   else
   {
-    printf("Type help for help\n\n");
-    return ESP_ERR_INVALID_ARG;
+    print_cmd_help(argv[0], (void**) &clock_args);
   }
 
   return ESP_OK;
@@ -251,7 +250,7 @@ static int do_clock_cmd(int argc, char **argv)
 static void register_clock_cmd()
 {
   clock_args.get = arg_lit0("g", "get", "get datetime");
-  clock_args.set = arg_date0("s", "set", "%Y-%m-%dT%H:%M:%S", NULL, "set datetime");
+  clock_args.set = arg_date0("s", "set", "%Y-%m-%dT%H:%M:%S", NULL, "set datetime (e.g. clock -s 2020-12-31T11:22:33");
   clock_args.end = arg_end(20);
 
   const esp_console_cmd_t cmd =
