@@ -1,3 +1,6 @@
+// Tests.h has to be first
+#include "tests.h"
+
 #include "cleanbox.h"
 #include "hal.h"
 #include "ui.h"
@@ -31,6 +34,15 @@ void setup() {
   TS_SerialCmd.begin();
 
   log_w("Crash count: %d", TS_PersistMem.crashCount);
+
+#ifdef TESTDRIVER
+
+  TS_StorageTests.run_all();
+
+  TS_HAL.sleep(TS_SleepMode::Default, 60000);
+  TS_HAL.fail_reboot("Restarting tests...");
+
+#endif
 }
 
 int skips = 0;

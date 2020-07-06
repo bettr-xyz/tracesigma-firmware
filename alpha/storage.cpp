@@ -6,14 +6,18 @@
 #define EEPROM_SIZE       1024
 #define SETTINGS_VERSION  0x01
 
-// Cleanup every 5 mins
-#define CLEANUP_MINS      5
+// Cleanup every 3 mins
+#define CLEANUP_MINS      3
 
 #define TEMPPEERS_MAX     100
 #define PEERCACHE_MAX     30
 
+#define PEERCACHE_ACCEPT_MINS 5
+
 #define TEMPPEERS_MAXAGE  420    // 7 min
-#define PEERCACHE_MAXAGE  1080   // 18 min
+#define PEERCACHE_MAXAGE  1800   // 30 min
+
+#define PEER_MAXIDLE      240    // 4 min
 
 #define SECS_PER_DAY      86400
 #define SECS_PER_MIN      60
@@ -30,7 +34,14 @@ struct PeerIncidentFileFrame
   int16_t     rssi_dsquared;
 };
 
+//
+// TS_Peer
+//
 
+TS_Peer::TS_Peer()
+: id(0), mins(0), rssi_min(0), rssi_max(0), rssi_sum(0), rssi_samples(0), rssi_dsquared(0)
+{
+}
 
 //
 // TS_PeerIterator
@@ -231,22 +242,67 @@ uint8_t _TS_Storage::file_ids_writeall(uint8_t maxCount, std::string *ids)
 
 bool _TS_Storage::peer_log_incident(std::string id, std::string org, std::string deviceType, int8_t rssi, TS_DateTime *current)
 {
-  // if exist in tempPeers, cumulate. If mins >= 5 , insert into peerCache/peermap, delete from tempPeers
-  auto tempPeer = this->tempPeers.find(id);
-  if (tempPeer != this->tempPeers.end())
+  int currentTimeToSecs = time_to_secs(current);
+  
+  // if exist in tempPeers, cumulate. If mins >= PEERCACHE_ACCEPT_MINS , move into peerCache, delete from tempPeers
   {
-    // found
+    auto peer = this->tempPeers.find(id);
+    if (peer != this->tempPeers.end())
+    {
+      // found, cumulate rssi samples
+      peer_rssi_add_sample(&peer->second, rssi);
+  
+      // update nearest minutes
+      int peerTimeDiff = time_diff(currentTimeToSecs, time_to_secs(&peer->second.firstSeen), SECS_PER_DAY);
+      peer->second.mins = peerTimeDiff / 60;
+  
+      if(peer->second.mins >= PEERCACHE_ACCEPT_MINS)
+      {
+        // Get/add an id
+        peer->second.id = this->peer_id_get_or_add( peer->first, &peer->second );
+        if(peer->second.id == 0)
+        {
+          log_e("Unable to get next id from peer id file");
+          return false;
+        }
+        
+        // Move entry to peercache
+        this->peerCache[ peer->first ] = peer->second;
+        this->tempPeers.erase(peer);
+      }
+      
+      return true;
+    }
   }
 
-  // TODO: evict old entries from tempPeers if low mem
+  // find in peercache
+  {
+    auto peer = this->peerCache.find(id);
+    if (peer != this->peerCache.end())
+    {
+      // found, cumulate rssi samples
+      peer_rssi_add_sample(&peer->second, rssi);
   
-  
-  // TODO: if id does not exist in peerCache and peermap file, create in peermap and add to peerCache
+      // update nearest minutes
+      int peerTimeDiff = time_diff(currentTimeToSecs, time_to_secs(&peer->second.firstSeen), SECS_PER_DAY);
+      peer->second.mins = peerTimeDiff / 60;
+      
+      return true;
+    }
+  }
 
-  // TODO: if exist in tempPeers, cumulate
-  
+  // create in tempPeers
+  {
+    TS_Peer peer;
+    peer.org = org;
+    peer.deviceType = deviceType;
+    peer.firstSeen = *current;
 
-  
+    peer_rssi_add_sample(&peer, rssi);
+    
+    this->tempPeers[ id ] = peer;
+    return true;
+  }
 }
 
 TS_PeerIterator* _TS_Storage::peer_get_next(TS_PeerIterator* it)
@@ -378,7 +434,10 @@ TS_PeerIterator* _TS_Storage::peer_get_next_incident(TS_PeerIterator* it)
   return it;
 }
 
-
+void _TS_Storage::peer_prune(uint8_t days, TS_DateTime *current)
+{
+  // TODO:
+}
 
 uint16_t _TS_Storage::peer_cleanup(TS_DateTime *current)
 {
@@ -405,7 +464,8 @@ uint16_t _TS_Storage::peer_cleanup(TS_DateTime *current)
     for(auto peer = this->tempPeers.begin(); peer != this->tempPeers.end();)
     {
       int peerTimeDiff = time_diff(time_to_secs(&peer->second.firstSeen), now, SECS_PER_DAY);
-      if(peerTimeDiff > TEMPPEERS_MAXAGE)
+      int peerIdleDiff = peerTimeDiff + (peer->second.mins * 60);
+      if(peerTimeDiff > TEMPPEERS_MAXAGE || peerIdleDiff > PEER_MAXIDLE)
       {
         this->tempPeers.erase(peer++);
         continue;
@@ -440,7 +500,8 @@ uint16_t _TS_Storage::peer_cleanup(TS_DateTime *current)
     for(auto peer = this->peerCache.begin(); peer != this->peerCache.end();)
     {
       int peerTimeDiff = time_diff(time_to_secs(&peer->second.firstSeen), now, SECS_PER_DAY);
-      if(peerTimeDiff > PEERCACHE_MAXAGE)
+      int peerIdleDiff = peerTimeDiff + (peer->second.mins * 60);
+      if(peerTimeDiff > PEERCACHE_MAXAGE || peerIdleDiff > PEER_MAXIDLE)
       {
         // commit and remove old entries
         auto tPeer = peer++;
@@ -584,6 +645,17 @@ void _TS_Storage::peer_incident_add(TS_Peer *peer)
 
   f.write((byte *)&frame, sizeof(frame));
   f.close();
+}
+
+void _TS_Storage::peer_rssi_add_sample(TS_Peer *peer, int8_t rssi)
+{ 
+  if(rssi < peer->rssi_min) peer->rssi_min = rssi;
+  if(rssi > peer->rssi_max) peer->rssi_max = rssi;
+  peer->rssi_sum += rssi;
+  ++peer->rssi_samples;
+  int16_t mean = peer->rssi_sum / peer->rssi_samples;
+  int16_t ds = (rssi - mean) * (rssi - mean);
+  peer->rssi_dsquared += ds;
 }
 
 

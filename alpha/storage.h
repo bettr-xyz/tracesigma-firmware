@@ -7,6 +7,7 @@
 #define __TS_STORAGE__
 
 #include "hal.h"
+#include "tests.h"
 #include <SPIFFS.h>
 #include <list>
 
@@ -25,6 +26,8 @@ struct TS_Settings
 
 struct TS_Peer
 {
+  TS_Peer();
+  
   uint16_t id;  // may not be used until just about to store
   
   std::string org;
@@ -118,7 +121,6 @@ class _TS_Storage
     TS_PeerIterator* peer_get_next_incident(TS_PeerIterator* it); // Get next incident of current peer
 
     // Delete the last N days of incidents depending on free space
-    // TODO
     void peer_prune(uint8_t days, TS_DateTime *current);
 
     // Cleanup when necessary
@@ -157,8 +159,106 @@ class _TS_Storage
 
     // Append incident to peer incident file
     void peer_incident_add(TS_Peer *peer);
+
+    //
+    // Other helper functions
+    //
+    
+    void peer_rssi_add_sample(TS_Peer *peer, int8_t rssi);
 };
 
 extern _TS_Storage TS_Storage;
+
+
+
+//
+// Tests
+//
+
+#ifdef TESTDRIVER
+static class _TS_StorageTests : public _TS_Tests
+{  
+public:
+  std::string test_id;
+  std::string test_org;
+  std::string test_device;
+  TS_DateTime test_time;
+  int8_t test_rssi;
+
+  bool test_peer_log_pass;
+
+  void init() override
+  {
+    test_id = "abc";
+    test_org = "test org";
+    test_device = "test device";
+    test_time.day = 6;
+    test_time.month = 6;
+    test_time.year = 2020;
+    test_time.hour = 10;
+    test_time.minute = 10;
+    test_time.second = 10;
+    test_rssi = -30;
+
+    test_peer_log_pass = false;
+  }
+
+  void setup() override {}
+
+  void teardown() override {}
+
+  // test writing a log
+  bool test_peer_log()
+  { 
+    test_peer_log_pass = false;
+    if( !TS_Storage.peer_log_incident( test_id, test_org, test_device, test_rssi, &test_time ) )
+    {
+      log_e("peer_log_incident expected to return true");
+      return false;
+    }
+
+    test_peer_log_pass = true;
+    return true;
+  }
+  
+  // TODO: test iterate
+  bool test_iterate_logs()
+  {
+    if(!test_peer_log_pass)
+    {
+      log_e("Test depends on test_peer_log passing");
+      return false;
+    }
+
+    // TODO:
+    return false;
+  }
+
+  // TODO: test cleanup
+  bool test_cleanup_before_elapsed()
+  {
+
+    // TODO:
+    return false;
+  }
+
+  bool test_cleanup_after_elapsed()
+  {
+    // TODO:
+    return false;
+  }
+
+  // Ctor
+  _TS_StorageTests()
+  { 
+    add(std::bind(&_TS_StorageTests::test_peer_log, this), "test_peer_log");
+    add(std::bind(&_TS_StorageTests::test_iterate_logs, this), "test_iterate_logs");
+    add(std::bind(&_TS_StorageTests::test_cleanup_before_elapsed, this), "test_cleanup_before_elapsed");
+    add(std::bind(&_TS_StorageTests::test_cleanup_after_elapsed, this), "test_cleanup_after_elapsed");
+  }
+} TS_StorageTests;
+
+#endif
+// end TESTDRIVER
 
 #endif
