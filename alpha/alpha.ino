@@ -1,7 +1,6 @@
-// Tests.h has to be first
-#include "tests.h"
+#include "cleanbox.h" // This has to be first
+#include "tests.h"    // This has to be second
 
-#include "cleanbox.h"
 #include "hal.h"
 #include "ui.h"
 #include "power.h"
@@ -37,10 +36,7 @@ void setup() {
 
 #ifdef TESTDRIVER
 
-  TS_StorageTests.run_all();
-
-  TS_HAL.sleep(TS_SleepMode::Default, 60000);
-  TS_HAL.fail_reboot("Restarting tests...");
+  TS_StorageTests.run_all_repeatedly();
 
 #endif
 }

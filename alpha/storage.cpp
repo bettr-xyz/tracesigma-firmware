@@ -65,6 +65,11 @@ TS_PeerIterator::~TS_PeerIterator()
   }
 }
 
+std::string * TS_PeerIterator::getDayFile()
+{
+  return &this->dayFileName;
+}
+
 std::string * TS_PeerIterator::getPeerId()
 {
   if(!validPeer) return NULL;
@@ -75,6 +80,31 @@ TS_Peer * TS_PeerIterator::getPeerIncident()
 {
   if(!validIncident) return NULL;
   return &this->peer;
+}
+
+uint8_t TS_PeerIterator::log()
+{
+  std::string *peerId = this->getPeerId();
+  TS_Peer *pi = this->getPeerIncident();
+
+  if(peerId == NULL)
+  {
+    log_i("TS_PeerIterator %s None", this->getDayFile());
+    return 0;
+  }
+  else if(pi == NULL)
+  {
+    log_i("TS_PeerIterator %s %s None ", this->getDayFile(), peerId);
+    return 1;
+  }
+  else
+  {
+    log_i("TS_PeerIterator %s %s %d %s %s (%d-%d-%d %d:%d:%d) (%d) %d, %d, %d %d %d",
+      this->getDayFile(), peerId, pi->id, pi->org, pi->deviceType,
+      pi->firstSeen.day, pi->firstSeen.month, pi->firstSeen.year, pi->firstSeen.hour, pi->firstSeen.minute, pi->firstSeen.second,
+      pi->mins, pi->rssi_min, pi->rssi_max, pi->rssi_sum, pi->rssi_samples, pi->rssi_dsquared);
+    return 2;
+  }
 }
 
 
@@ -315,18 +345,23 @@ TS_PeerIterator* _TS_Storage::peer_get_next(TS_PeerIterator* it)
     // List all files of /p/[mmdd]
     // Ignore files of /p/[mmdd]/*
     File root = SPIFFS.open("/p/");
-    File file = root.openNextFile();
-    while(file){
-      if(!file.isDirectory())
+    if(root)
+    {
+      File file = root.openNextFile();
+      while(file)
       {
-        // a file
-        it->dayFileNames.push_back(std::string(file.name()));
+        if(!file.isDirectory())
+        {
+          // a file
+          it->dayFileNames.push_back(std::string(file.name()));
+        }
+        
+        file.close();
+        file = root.openNextFile();
       }
       
-      file.close();
-      file = root.openNextFile();
+      root.close();
     }
-    root.close();
   }
 
   // Reset file ptrs if they still exist
@@ -341,22 +376,25 @@ TS_PeerIterator* _TS_Storage::peer_get_next(TS_PeerIterator* it)
   {
     it->fileIncident.close();
   }
-  
-  // Get next dayfile
-  it->dayFileName = it->dayFileNames.front();
-  it->dayFileNames.pop_front();
 
-  it->fileId = SPIFFS.open(it->dayFileName.c_str(), "r");
-  if(!it->fileId)
+  if(it->dayFileNames.size() > 0)
   {
-    log_e("Failed to open file %s for r", it->dayFileName);
-    delete it;
-    return NULL;
+    // Get next dayfile
+    it->dayFileName = it->dayFileNames.front();
+    it->dayFileNames.pop_front();
+  
+    it->fileId = SPIFFS.open(it->dayFileName.c_str(), "r");
+    if(!it->fileId)
+    {
+      log_e("Failed to open file %s for r", it->dayFileName);
+      delete it;
+      return NULL;
+    }
+  
+    // get first incident
+    this->peer_get_next_peer(it);
+    return it;
   }
-
-  // get first incident
-  this->peer_get_next_peer(it);
-  return it;
 }
 
 TS_PeerIterator* _TS_Storage::peer_get_next_peer(TS_PeerIterator* it)

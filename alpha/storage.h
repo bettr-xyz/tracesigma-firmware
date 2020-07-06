@@ -15,6 +15,10 @@
 // Classes
 //
 
+// Clas pre-def
+class _TS_StorageTests;
+class _TS_Storage;
+
 struct TS_Settings
 {
   uint8_t settingsVersion;
@@ -43,7 +47,6 @@ struct TS_Peer
   int16_t     rssi_dsquared;
 };
 
-class _TS_Storage;
 class TS_PeerIterator
 {
   friend class _TS_Storage;
@@ -52,8 +55,11 @@ class TS_PeerIterator
     TS_PeerIterator();
     virtual ~TS_PeerIterator();
 
+    std::string *getDayFile();
     std::string *getPeerId();
     TS_Peer *getPeerIncident();
+
+    uint8_t log();
     
   protected:
     std::list<std::string> dayFileNames;
@@ -75,6 +81,8 @@ class TS_PeerIterator
 // - not threadsafe unless stated
 class _TS_Storage
 {
+  friend class _TS_StorageTests;
+  
   public:
     _TS_Storage();
 
@@ -175,7 +183,7 @@ extern _TS_Storage TS_Storage;
 // Tests
 //
 
-#ifdef TESTDRIVER
+#if defined(TESTDRIVER) && defined(TESTDRIVER_STORAGE)
 static class _TS_StorageTests : public _TS_Tests
 {  
 public:
@@ -222,7 +230,7 @@ public:
   }
   
   // TODO: test iterate
-  bool test_iterate_logs()
+  bool test_iterate_logs_none()
   {
     if(!test_peer_log_pass)
     {
@@ -230,21 +238,72 @@ public:
       return false;
     }
 
-    // TODO:
-    return false;
+    auto it = TS_Storage.peer_get_next(NULL);
+    if(it == NULL)
+    {
+      log_e("Null PeerIterator");
+      return false;
+    }
+
+    int ret = it->log();
+    if(ret != 0)
+    {
+      log_e("Expected no logs/storage found!");
+      return false;
+    }
+
+    return true;
   }
 
   // TODO: test cleanup
   bool test_cleanup_before_elapsed()
   {
+    TS_Storage.lastCleanupMins = 10;  // 0 mins elapsed
+    if (TS_Storage.peer_cleanup(&test_time) != 0)
+    {
+      log_e("Cleanup should not have happened");
+      return false;
+    }
 
-    // TODO:
-    return false;
+    TS_Storage.lastCleanupMins = 10;  // 3+ mins elapsed
+    test_time.minute = 13;
+    if (TS_Storage.peer_cleanup(&test_time) != 0)
+    {
+      log_e("Cleanup should not have removed anything as PEER_MAXIDLE has not elapsed");
+      return false;
+    }
+
+    return true;
   }
 
   bool test_cleanup_after_elapsed()
   {
-    // TODO:
+    if(!test_peer_log_pass)
+    {
+      log_e("Test depends on test_peer_log passing");
+      return false;
+    }
+
+    TS_Storage.lastCleanupMins = 10;  // 4+ mins elapsed
+    test_time.minute = 14;
+    if (TS_Storage.peer_cleanup(&test_time) != 1)
+    {
+      log_e("Cleanup should have removed the one and only entry");
+      return false;
+    }
+    
+    return true;
+  }
+
+  bool test_prune_noop()
+  {
+    // TODO: calls prune but nothing should happen
+    return false;
+  }
+
+  bool test_prune_all()
+  {
+    // TODO: prune all files
     return false;
   }
 
@@ -252,13 +311,17 @@ public:
   _TS_StorageTests()
   { 
     add(std::bind(&_TS_StorageTests::test_peer_log, this), "test_peer_log");
-    add(std::bind(&_TS_StorageTests::test_iterate_logs, this), "test_iterate_logs");
+    add(std::bind(&_TS_StorageTests::test_iterate_logs_none, this), "test_iterate_logs_none");
     add(std::bind(&_TS_StorageTests::test_cleanup_before_elapsed, this), "test_cleanup_before_elapsed");
     add(std::bind(&_TS_StorageTests::test_cleanup_after_elapsed, this), "test_cleanup_after_elapsed");
+    // TODO: test_peer_log again w/ different time to force write to file
+    // Iterate again when files actually exist
+    //add(std::bind(&_TS_StorageTests::test_iterate_logs_none, this), "test_iterate_logs_none");
+    //add(std::bind(&_TS_StorageTests::test_prune_noop, this), "test_prune_noop");
+    //add(std::bind(&_TS_StorageTests::test_prune_all, this), "test_prune_all");
   }
 } TS_StorageTests;
 
 #endif
-// end TESTDRIVER
 
 #endif
