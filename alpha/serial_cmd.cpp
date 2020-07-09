@@ -144,7 +144,7 @@ static void print_cmd_help(char* cmd_name, void** argtable)
   arg_print_glossary_gnu(stdout, argtable);
 }
 
-static void save_to_RAM_or_EEPROM(struct arg_lit *ram_flag)
+static void save_to_ram_or_eeprom(struct arg_lit *ram_flag)
 {
   printf("Saved to: ");
   if (ram_flag->count == 1)
@@ -208,40 +208,40 @@ static struct
   struct arg_lit *get;
   struct arg_date *set;
   struct arg_end *end;
-} clock_args;
+} clockArgs;
 
 static int do_clock_cmd(int argc, char **argv)
 {
   TS_DateTime dt;
 
-  int nerrors = arg_parse(argc, argv, (void **) &clock_args);
+  int nerrors = arg_parse(argc, argv, (void **) &clockArgs);
   if (nerrors != 0)
   {
-    arg_print_errors(stderr, clock_args.end, argv[0]);
+    arg_print_errors(stderr, clockArgs.end, argv[0]);
     return ESP_ERR_INVALID_ARG;
   }
 
-  if (clock_args.get->count == 1)
+  if (clockArgs.get->count == 1)
   {
     TS_HAL.rtc_get(dt);
     printf("Current datetime: %04d-%02d-%02dT%02d:%02d:%02d\n\n", dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second);
   } 
-  else if (clock_args.set->count == 1)
+  else if (clockArgs.set->count == 1)
   {
     /* tm_year gives years since 1900 */
-    dt.year = (clock_args.set->tmval->tm_year) + 1900;
+    dt.year = (clockArgs.set->tmval->tm_year) + 1900;
     /* tm_mon range = [0, 11], convert to [1,12] */
-    dt.month = (clock_args.set->tmval->tm_mon) + 1;
-    dt.day = clock_args.set->tmval->tm_mday;
-    dt.hour = clock_args.set->tmval->tm_hour;
-    dt.minute = clock_args.set->tmval->tm_min;
-    dt.second = clock_args.set->tmval->tm_sec;
+    dt.month = (clockArgs.set->tmval->tm_mon) + 1;
+    dt.day = clockArgs.set->tmval->tm_mday;
+    dt.hour = clockArgs.set->tmval->tm_hour;
+    dt.minute = clockArgs.set->tmval->tm_min;
+    dt.second = clockArgs.set->tmval->tm_sec;
     TS_HAL.rtc_set(dt);
     printf("Success!\n\n");
   } 
   else
   {
-    print_cmd_help(argv[0], (void**) &clock_args);
+    print_cmd_help(argv[0], (void**) &clockArgs);
   }
 
   return ESP_OK;
@@ -249,9 +249,9 @@ static int do_clock_cmd(int argc, char **argv)
 
 static void register_clock_cmd()
 {
-  clock_args.get = arg_lit0("g", "get", "get datetime");
-  clock_args.set = arg_date0("s", "set", "%Y-%m-%dT%H:%M:%S", NULL, "set datetime (e.g. clock -s 2020-12-31T11:22:33");
-  clock_args.end = arg_end(20);
+  clockArgs.get = arg_lit0("g", "get", "get datetime");
+  clockArgs.set = arg_date0("s", "set", "%Y-%m-%dT%H:%M:%S", NULL, "set datetime (e.g. clock -s 2020-12-31T11:22:33");
+  clockArgs.end = arg_end(20);
 
   const esp_console_cmd_t cmd =
   {
@@ -259,7 +259,7 @@ static void register_clock_cmd()
     .help = "Get or set datetime",
     .hint = NULL,
     .func = &do_clock_cmd,
-    .argtable = &clock_args
+    .argtable = &clockArgs
   };
   ESP_ERROR_CHECK( esp_console_cmd_register(&cmd) );
 }
@@ -271,15 +271,15 @@ static struct
   struct arg_str *password;
   struct arg_lit *ram_flag;
   struct arg_end *end;
-} wifi_args;
+} wifiArgs;
 
 static int do_wifi_cmd(int argc, char **argv)
 {
-  int nerrors = arg_parse(argc, argv, (void**) &wifi_args);
+  int nerrors = arg_parse(argc, argv, (void**) &wifiArgs);
 
   if (nerrors != 0)
   {
-    arg_print_errors(stderr, wifi_args.end, argv[0]);
+    arg_print_errors(stderr, wifiArgs.end, argv[0]);
     return ESP_ERR_INVALID_ARG;
   }
 
@@ -287,28 +287,28 @@ static int do_wifi_cmd(int argc, char **argv)
   TS_Settings* settings = TS_Storage.settings_get();
 
   /* user issued get cmd */
-  if (wifi_args.get->count == 1)
+  if (wifiArgs.get->count == 1)
   {
     printf("SSID: %s\n", settings->wifiSsid);
     printf("Password: %s\n\n", settings->wifiPass);
   }
   /* user issued set cmd, store string if length check passes */
-  else if (wifi_args.ssid->count == 1 || wifi_args.password->count == 1)
+  else if (wifiArgs.ssid->count == 1 || wifiArgs.password->count == 1)
   {
-    if (wifi_args.ssid->count == 1)
+    if (wifiArgs.ssid->count == 1)
     {
-      check_copy_str_setting(wifi_args.ssid->sval[0], settings->wifiSsid);
+      check_copy_str_setting(wifiArgs.ssid->sval[0], settings->wifiSsid);
     }
-    if (wifi_args.password->count == 1)
+    if (wifiArgs.password->count == 1)
     {
-      check_copy_str_setting(wifi_args.password->sval[0], settings->wifiPass);
+      check_copy_str_setting(wifiArgs.password->sval[0], settings->wifiPass);
     }
-    save_to_RAM_or_EEPROM(wifi_args.ram_flag);
+    save_to_ram_or_eeprom(wifiArgs.ram_flag);
   }
   /* user didn't provide args, print help */
   else
   {
-    print_cmd_help(argv[0], (void**) &wifi_args);
+    print_cmd_help(argv[0], (void**) &wifiArgs);
   }
 
   return ESP_OK;
@@ -316,11 +316,11 @@ static int do_wifi_cmd(int argc, char **argv)
 
 static void register_wifi_cmd(void)
 {
-  wifi_args.get = arg_lit0("g", "get", "get WIFI settings");
-  wifi_args.ssid = arg_str0("s", "ssid", NULL, "set SSID, wrap in quotes \"\" if contains space");
-  wifi_args.password = arg_str0("p", "pass", NULL, "set password");
-  wifi_args.ram_flag = arg_lit0("r", "ram", "[debug] save to RAM not EEPROM, will not persist after power cycle (e.g. wifi -s abc -r)");
-  wifi_args.end = arg_end(20);
+  wifiArgs.get = arg_lit0("g", "get", "get WIFI settings");
+  wifiArgs.ssid = arg_str0("s", "ssid", NULL, "set SSID, wrap in quotes \"\" if contains space");
+  wifiArgs.password = arg_str0("p", "pass", NULL, "set password");
+  wifiArgs.ram_flag = arg_lit0("r", "ram", "[debug] save to RAM not EEPROM, will not persist after power cycle (e.g. wifi -s abc -r)");
+  wifiArgs.end = arg_end(20);
 
   const esp_console_cmd_t sta_cmd =
   {
@@ -328,7 +328,7 @@ static void register_wifi_cmd(void)
     .help = "Get or set WIFI settings",
     .hint = NULL,
     .func = &do_wifi_cmd,
-    .argtable = &wifi_args
+    .argtable = &wifiArgs
   };
 
   ESP_ERROR_CHECK( esp_console_cmd_register(&sta_cmd) );
@@ -340,7 +340,7 @@ static struct
   struct arg_int *upload_flag;
   struct arg_lit *ram_flag;
   struct arg_end *end;
-} flag_args;
+} flagArgs;
 
 static void print_flags(TS_Settings* settings)
 {
@@ -349,22 +349,22 @@ static void print_flags(TS_Settings* settings)
 
 static int do_flag_cmd(int argc, char **argv)
 {
-  int nerrors = arg_parse(argc, argv, (void **) &flag_args);
+  int nerrors = arg_parse(argc, argv, (void **) &flagArgs);
   if (nerrors != 0)
   {
-    arg_print_errors(stderr, flag_args.end, argv[0]);
+    arg_print_errors(stderr, flagArgs.end, argv[0]);
     return ESP_ERR_INVALID_ARG;
   }
 
   TS_Settings* settings = TS_Storage.settings_get();
 
-  if (flag_args.get->count == 1)
+  if (flagArgs.get->count == 1)
   {
     print_flags(settings);
   }
-  else if (flag_args.upload_flag->count == 1)
+  else if (flagArgs.upload_flag->count == 1)
   {
-    switch (flag_args.upload_flag->ival[0])
+    switch (flagArgs.upload_flag->ival[0])
     {
       case 0:
         settings->upload_flag = false;
@@ -373,14 +373,14 @@ static int do_flag_cmd(int argc, char **argv)
         settings->upload_flag = true;
         break;
       default:
-        print_cmd_help(argv[0], (void**) &flag_args);
+        print_cmd_help(argv[0], (void**) &flagArgs);
         return ESP_ERR_INVALID_ARG;
     }
-    save_to_RAM_or_EEPROM(flag_args.ram_flag);
+    save_to_ram_or_eeprom(flagArgs.ram_flag);
   }
   else
   {
-    print_cmd_help(argv[0], (void**) &flag_args);
+    print_cmd_help(argv[0], (void**) &flagArgs);
   }
 
   return ESP_OK;
@@ -388,10 +388,10 @@ static int do_flag_cmd(int argc, char **argv)
 
 static void register_flag_cmd()
 {
-  flag_args.get = arg_lit0("g", "get", "get flag settings");
-  flag_args.upload_flag = arg_int0("u", "upload", "<int>", "1: upload temp IDs when WIFI connected, 0: disabled");
-  flag_args.ram_flag = arg_lit0("r", "ram", "[debug] save to RAM not EEPROM, will not persist after power cycle (e.g. flag -u 1 -r)");
-  flag_args.end = arg_end(20);
+  flagArgs.get = arg_lit0("g", "get", "get flag settings");
+  flagArgs.upload_flag = arg_int0("u", "upload", "<int>", "1: upload temp IDs when WIFI connected, 0: disabled");
+  flagArgs.ram_flag = arg_lit0("r", "ram", "[debug] save to RAM not EEPROM, will not persist after power cycle (e.g. flag -u 1 -r)");
+  flagArgs.end = arg_end(20);
 
   const esp_console_cmd_t cmd =
   {
@@ -399,7 +399,7 @@ static void register_flag_cmd()
     .help = "Get or set flags",
     .hint = NULL,
     .func = &do_flag_cmd,
-    .argtable = &flag_args
+    .argtable = &flagArgs
   };
   ESP_ERROR_CHECK( esp_console_cmd_register(&cmd) );
 }
@@ -410,15 +410,15 @@ static struct
   struct arg_str *set;
   struct arg_lit *ram_flag;
   struct arg_end *end;
-} userid_args;
+} useridArgs;
 
 static int do_userid_cmd(int argc, char **argv)
 {
-  int nerrors = arg_parse(argc, argv, (void**) &userid_args);
+  int nerrors = arg_parse(argc, argv, (void**) &useridArgs);
 
   if (nerrors != 0)
   {
-    arg_print_errors(stderr, userid_args.end, argv[0]);
+    arg_print_errors(stderr, useridArgs.end, argv[0]);
     return ESP_ERR_INVALID_ARG;
   }
 
@@ -426,20 +426,20 @@ static int do_userid_cmd(int argc, char **argv)
   TS_Settings* settings = TS_Storage.settings_get();
 
   /* user issued get cmd */
-  if (userid_args.get->count == 1)
+  if (useridArgs.get->count == 1)
   {
     printf("userID: %s\n", settings->userId);
   }
   /* user issued set cmd, store string if length check passes */
-  else if (userid_args.set->count == 1)
+  else if (useridArgs.set->count == 1)
   {
-    check_copy_str_setting(userid_args.set->sval[0], settings->userId);
-    save_to_RAM_or_EEPROM(userid_args.ram_flag);
+    check_copy_str_setting(useridArgs.set->sval[0], settings->userId);
+    save_to_ram_or_eeprom(useridArgs.ram_flag);
   }
   /* user didn't provide args, print help */
   else
   {
-    print_cmd_help(argv[0], (void**) &userid_args);
+    print_cmd_help(argv[0], (void**) &useridArgs);
   }
 
   return ESP_OK;
@@ -447,10 +447,10 @@ static int do_userid_cmd(int argc, char **argv)
 
 static void register_userid_cmd(void)
 {
-  userid_args.get = arg_lit0("g", "get", "get userID");
-  userid_args.set = arg_str0("s", "set", NULL, "set userID");
-  userid_args.ram_flag = arg_lit0("r", "ram", "[debug] save to RAM not EEPROM, will not persist after power cycle (e.g. userid -s abc -r)");
-  userid_args.end = arg_end(20);
+  useridArgs.get = arg_lit0("g", "get", "get userID");
+  useridArgs.set = arg_str0("s", "set", NULL, "set userID");
+  useridArgs.ram_flag = arg_lit0("r", "ram", "[debug] save to RAM not EEPROM, will not persist after power cycle (e.g. userid -s abc -r)");
+  useridArgs.end = arg_end(20);
 
   const esp_console_cmd_t sta_cmd =
   {
@@ -458,7 +458,7 @@ static void register_userid_cmd(void)
     .help =  "Get or set userID",
     .hint = NULL,
     .func = &do_userid_cmd,
-    .argtable = &userid_args
+    .argtable = &useridArgs
   };
 
   ESP_ERROR_CHECK( esp_console_cmd_register(&sta_cmd) );
