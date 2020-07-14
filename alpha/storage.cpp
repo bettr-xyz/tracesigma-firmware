@@ -3,7 +3,7 @@
 #include <EEPROM.h>
 
 #define EEPROM_SIZE       1024
-#define SETTINGS_VERSION  0x01
+#define SETTINGS_VERSION  0x02
 
 _TS_Storage TS_Storage;
 _TS_Storage::_TS_Storage() { }
