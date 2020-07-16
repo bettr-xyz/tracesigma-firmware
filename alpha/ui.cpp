@@ -2,6 +2,7 @@
 #include "hal.h"
 #include "power.h"
 #include "radio.h"
+#include "icons.h"
 
 // Increase as UI thread uses more things
 #define THREAD_STACK_SIZE 5000
@@ -9,7 +10,18 @@
 #define LONG_PRESS_DELAY 1000
 #define LONG_PRESS_CLICK_INTERVAL 500
 #define MIN_SLEEP_DURATION 1000
+
+#ifdef HAL_M5STICK_C
+  #define TS_LCD_HEIGHT 80
+  #define TS_LCD_WIDTH 160
+#endif
+
+#define TS_LCD_BORDER 3
+
 #define LINE_HEIGHT 16
+#define FONTSIZE_1 1
+#define FONTSIZE_2 2
+#define FONTSIZE_3 3
 
 _TS_UI TS_UI;
 
@@ -21,7 +33,7 @@ _TS_UI::_TS_UI():
     nullptr),
   state_datetime(
     [this]() { _TS_UI::state_datetime_on_enter(); },
-    nullptr,
+    [this]() { _TS_UI::state_datetime_on(); },
     nullptr),
   state_settings(
     [this]() { _TS_UI::state_settings_on_enter(); },
@@ -88,7 +100,7 @@ _TS_UI::_TS_UI():
   brightness = 24;
   
   // Initialize private variables
-  clickA = clickB = clickP = hasUpdate = false;
+  clickA = clickB = clickP = false;
 
 }
 
@@ -134,9 +146,6 @@ bool _TS_UI::read_button(bool reading, button& btn)
 
 void _TS_UI::task(void* parameter)
 {
-  UBaseType_t stackHighWaterMark;
-  unsigned long savePowerStart = 0;
-
   button btnA;
   button btnB;
   button btnP;
@@ -150,8 +159,6 @@ void _TS_UI::task(void* parameter)
     clickA = this->read_button(TS_HAL.btn_a_get() != TS_ButtonState::NotPressed, btnA);
     clickB = this->read_button(TS_HAL.btn_b_get() != TS_ButtonState::NotPressed, btnB);
     clickP = this->read_button(TS_HAL.btn_power_get() != TS_ButtonState::NotPressed, btnP);
-
-    hasUpdate = clickA || clickB || clickP;
     
     if (clickA)
     {
@@ -169,9 +176,6 @@ void _TS_UI::task(void* parameter)
     }
 
     TS_UI.update();
-
-    //   stackHighWaterMark = uxTaskGetStackHighWaterMark(NULL);
-    //   log_w("UI highwatermark: %d", stackHighWaterMark);
 
     TS_HAL.sleep(TS_SleepMode::Task, 20);
   }
@@ -200,42 +204,71 @@ void _TS_UI::toggle_button_p()
 
 void _TS_UI::state_splash_on_enter()
 {
-  TS_HAL.lcd_clear();
+  clear_ui();
   TS_HAL.lcd_cursor(0, 0);
-  TS_HAL.lcd_printf("Splash screen");
+  TS_HAL.lcd_drawbitmap(
+    (TS_LCD_WIDTH - ICON_SIGMA_W) / 2 + 45,
+    (TS_LCD_HEIGHT - ICON_SIGMA_H) / 2,
+    ICON_SIGMA_W,
+    ICON_SIGMA_H,
+    icon_sigma
+  );
+
+  TS_HAL.lcd_setTextSize(FONTSIZE_3);
+  TS_HAL.lcd_cursor(15, (TS_LCD_HEIGHT - LINE_HEIGHT * FONTSIZE_3) / 2);
+  TS_HAL.lcd_printf("TRAC");
 }
+
 void _TS_UI::state_datetime_on_enter()
 {
-  TS_HAL.lcd_clear();
+  clear_ui();
+  draw_battery_icon();
+}
 
+void _TS_UI::state_datetime_on()
+{
   TS_DateTime datetime;
   TS_HAL.rtc_get(datetime);
 
-  TS_HAL.lcd_cursor(0, 0);
-  // TODO: Does not work with F()
-
-  TS_HAL.lcd_printf("%04d-%02d-%02d ", datetime.year, datetime.month, datetime.day);
+  TS_HAL.lcd_setTextSize(FONTSIZE_1);
+  TS_HAL.lcd_cursor(40, (TS_LCD_HEIGHT - LINE_HEIGHT * FONTSIZE_2 - LINE_HEIGHT * FONTSIZE_1) / 2);
+  TS_HAL.lcd_printf("%04d-%02d-%02d\n", datetime.year, datetime.month, datetime.day);
+  TS_HAL.lcd_setTextSize(FONTSIZE_2);
+  TS_HAL.lcd_cursor(27, (TS_LCD_HEIGHT - LINE_HEIGHT * FONTSIZE_2 - LINE_HEIGHT * FONTSIZE_1) / 2 + LINE_HEIGHT * FONTSIZE_1);
   TS_HAL.lcd_printf("%02d:%02d:%02d\n", datetime.hour, datetime.minute, datetime.second);
-  TS_HAL.lcd_printf("Battery: %d%%", TS_HAL.power_get_batt_level());
-  if (TS_HAL.power_is_charging())
-  {
-    TS_HAL.lcd_printf(", Charging");
-  } else {
-    TS_HAL.lcd_printf("          ");
-  }
-  TS_HAL.lcd_printf("\n");
+  // TS_HAL.lcd_printf("Battery: %d%%", TS_HAL.power_get_batt_level());
+  // if (TS_HAL.power_is_charging())
+  // {
+  //   TS_HAL.lcd_printf(", Charging\n");
+  // } else {
+  //   TS_HAL.lcd_printf("          \n");
+  // }
 }
+
 void _TS_UI::state_settings_on_enter()
 {
-  TS_HAL.lcd_clear();
-  TS_HAL.lcd_cursor(0, 0);
-  TS_HAL.lcd_printf("Settings screen");
+  clear_ui();
+  draw_battery_icon();
+  
+  TS_HAL.lcd_drawbitmap(
+    (TS_LCD_WIDTH - ICON_GEAR_LARGE_W) / 2,
+    (TS_LCD_HEIGHT - ICON_GEAR_LARGE_H - LINE_HEIGHT) / 2,
+    ICON_GEAR_LARGE_W,
+    ICON_GEAR_LARGE_H,
+    icon_gear_large
+  );
+
+  TS_HAL.lcd_setTextSize(FONTSIZE_1);
+  TS_HAL.lcd_cursor(55, (TS_LCD_HEIGHT + ICON_GEAR_LARGE_H - LINE_HEIGHT) / 2);
+  TS_HAL.lcd_printf("Settings");
 }
 
 void _TS_UI::state_settings_network_on_enter()
 {
-  TS_HAL.lcd_clear();
-  TS_HAL.lcd_cursor(0, 0);
+  clear_ui();
+  draw_battery_icon();
+  TS_HAL.lcd_setTextSize(FONTSIZE_1);
+  TS_HAL.lcd_cursor(0, 40);
   TS_HAL.lcd_printf("Settings > Network\n");
   bool wifiConnected = TS_RADIO.wifi_is_connected();
   TS_HAL.lcd_printf("Status: %s\n", wifiConnected ? "Connected" : "Not Connected");
@@ -243,23 +276,27 @@ void _TS_UI::state_settings_network_on_enter()
 
 void _TS_UI::state_settings_brightness_on_enter()
 {
-  TS_HAL.lcd_clear();
-  TS_HAL.lcd_cursor(0, 0);
+  clear_ui();
+  draw_battery_icon();
+  TS_HAL.lcd_setTextSize(FONTSIZE_1);
+  TS_HAL.lcd_cursor(0, 40);
   TS_HAL.lcd_printf("Settings > Brightness\n");
   char printedString[21] = " Brightness ----- ";
   printedString[brightness / 20 + 11] = '|';
-  TS_HAL.lcd_printf(printedString);
+  TS_HAL.lcd_printf("  %s  ", printedString);
   TS_HAL.lcd_brightness(brightness);
 }
 
 void _TS_UI::state_settings_brightness_active_on_enter()
 {
-  TS_HAL.lcd_clear();
-  TS_HAL.lcd_cursor(0, 0);
+  clear_ui();
+  draw_battery_icon();
+  TS_HAL.lcd_setTextSize(FONTSIZE_1);
+  TS_HAL.lcd_cursor(0, 40);
   TS_HAL.lcd_printf("Settings > Brightness\n");
-  char printedString[21] = "[Brightness -----]";
+  char printedString[21] = " Brightness ----- ";
   printedString[brightness / 20 + 11] = '|';
-  TS_HAL.lcd_printf(printedString);
+  TS_HAL.lcd_printf(" [%s] ", printedString);
   TS_HAL.lcd_brightness(brightness);
 }
 
@@ -267,20 +304,22 @@ void _TS_UI::state_settings_brightness_active_on()
 {
   if (clickB)
   {
-    TS_HAL.lcd_cursor(0, LINE_HEIGHT);
-    char printedString[21] = "[Brightness -----]";      
+    TS_HAL.lcd_cursor(0, 40 + LINE_HEIGHT * FONTSIZE_1);
+    char printedString[21] = " Brightness ----- ";  
+    brightness %= 100;   
     brightness += 20;
-    brightness %= 100;
     printedString[brightness / 20 + 11] = '|';
-    TS_HAL.lcd_printf(printedString);
+    TS_HAL.lcd_printf(" [%s] ", printedString);
     TS_HAL.lcd_brightness(brightness);
   }
 }
 
 void _TS_UI::state_settings_sleep_on_enter()
 {
-  TS_HAL.lcd_clear();
-  TS_HAL.lcd_cursor(0, 0);
+  clear_ui();
+  draw_battery_icon();
+  TS_HAL.lcd_setTextSize(FONTSIZE_1);
+  TS_HAL.lcd_cursor(0, 40);
   TS_HAL.lcd_printf("Go to sleep?");
 }
 
@@ -293,4 +332,70 @@ void _TS_UI::state_sleep_on_exit()
 {
   TS_HAL.lcd_sleep(false);
   TS_HAL.lcd_brightness(brightness);
+}
+
+void _TS_UI::clear_ui()
+{
+  TS_HAL.lcd_clear();
+  this->batteryIconIndex = -1;
+}
+
+void _TS_UI::draw_battery_icon()
+{
+  if (TS_HAL.power_is_charging())
+  {
+    TS_HAL.lcd_drawbitmap(
+      TS_LCD_WIDTH - TS_LCD_BORDER - ICON_BATT_W,
+      TS_LCD_BORDER,
+      ICON_BATT_W,
+      ICON_BATT_H,
+      icon_batt_c
+    );
+  }
+  else
+  {
+    uint8_t batt = TS_HAL.power_get_batt_level();
+    int8_t batteryIconUpdateIndex = 0;
+    const uint16_t *iconData;
+    if (batt >= 90)
+    {
+      batteryIconUpdateIndex = 3;
+    }
+    else if (batt >= 65)
+    {
+      batteryIconUpdateIndex = 2;
+    }
+    else if (batt > 30)
+    {
+      batteryIconUpdateIndex = 1;
+    }
+
+    if (this->batteryIconIndex != batteryIconUpdateIndex)
+    {
+      this->batteryIconIndex = batteryIconUpdateIndex;
+      switch(this->batteryIconIndex) {
+        case 0:
+          iconData = icon_batt_0;
+          break;
+        case 1:
+          iconData = icon_batt_1;
+          break;
+        case 2:
+          iconData = icon_batt_2;
+          break;
+        case 3:
+          iconData = icon_batt_3;
+          break;
+        default:
+          iconData = icon_batt_0;
+      }
+      TS_HAL.lcd_drawbitmap(
+        TS_LCD_WIDTH - TS_LCD_BORDER - ICON_BATT_W,
+        TS_LCD_BORDER,
+        ICON_BATT_W,
+        ICON_BATT_H,
+        iconData
+      );
+    }
+  }
 }

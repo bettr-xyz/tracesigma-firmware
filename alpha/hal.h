@@ -108,6 +108,8 @@ class _TS_HAL
     void lcd_printf(const char*, int, int, int);
     void lcd_clear();
 
+    void lcd_setTextSize(uint8_t);
+
     // proxy display calls
     void lcd_qrcode(const char *string, uint16_t x = 5, uint16_t y = 5, uint8_t width = 70, uint8_t version = 7);
     inline void lcd_qrcode(const String &string, uint16_t x = 5, uint16_t y = 5, uint8_t width = 70, uint8_t version = 7);

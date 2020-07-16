@@ -36,9 +36,11 @@ class _TS_UI
     void task(void*);
     bool read_button(bool, button&);
 
+    int8_t batteryIconIndex;
+
     int brightness;
 
-    bool clickA, clickB, clickP, hasUpdate;
+    bool clickA, clickB, clickP;
 
     //fsm triggers
     enum Trigger
@@ -62,6 +64,7 @@ class _TS_UI
     //fsm state functions
     void state_splash_on_enter();
     void state_datetime_on_enter();
+    void state_datetime_on();
     void state_settings_on_enter();
     void state_settings_network_on_enter();
     void state_settings_brightness_on_enter();
@@ -72,6 +75,10 @@ class _TS_UI
     void state_sleep_on_exit();
 
 	  FunctionFsm fsm;
+
+    void clear_ui();
+    void draw_gear_icon();
+    void draw_battery_icon();
 
 };
 

@@ -1,7 +1,9 @@
 #ifndef __TS_POWER__
 #define __TS_POWER__
 
-#include "src\FunctionFsm\src\FunctionFSM.h"
+#ifndef FunctionFsm
+  #include "src\FunctionFsm\src\FunctionFSM.h"
+#endif
 
 enum TS_PowerState
 {
