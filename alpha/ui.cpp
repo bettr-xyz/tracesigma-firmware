@@ -9,11 +9,89 @@
 #define LONG_PRESS_DELAY 1000
 #define LONG_PRESS_CLICK_INTERVAL 500
 #define MIN_SLEEP_DURATION 1000
+#define LINE_HEIGHT 16
 
 _TS_UI TS_UI;
 
 // Ctor
-_TS_UI::_TS_UI() {}
+_TS_UI::_TS_UI():
+  state_splash(
+    [this]() { _TS_UI::state_splash_on_enter(); },
+    nullptr,
+    nullptr),
+  state_datetime(
+    [this]() { _TS_UI::state_datetime_on_enter(); },
+    nullptr,
+    nullptr),
+  state_settings(
+    [this]() { _TS_UI::state_settings_on_enter(); },
+    nullptr,
+    nullptr),
+  state_settings_network(
+    [this]() { _TS_UI::state_settings_network_on_enter(); },
+    nullptr,
+    nullptr),
+  state_settings_brightness(
+    [this]() { _TS_UI::state_settings_brightness_on_enter(); },
+    nullptr,
+    nullptr),
+  state_settings_brightness_active(
+    [this]() { _TS_UI::state_settings_brightness_active_on_enter(); },
+    [this]() { _TS_UI::state_settings_brightness_active_on(); },
+    nullptr),
+  state_settings_sleep(
+    [this]() { _TS_UI::state_settings_sleep_on_enter(); },
+    nullptr,
+    nullptr),
+  state_sleep(
+    [this]() { _TS_UI::state_sleep_on_enter(); },
+    nullptr,
+    [this]() { _TS_UI::state_sleep_on_exit(); }),
+  fsm(&state_splash)
+{
+
+  // Setup state transitions
+  fsm.add_transition(&state_splash, &state_datetime, BUTTON_A, nullptr);
+  fsm.add_transition(&state_splash, &state_datetime, BUTTON_B, nullptr);
+  fsm.add_transition(&state_splash, &state_sleep,    BUTTON_P, nullptr);
+
+  // Button A does nothing
+  fsm.add_transition(&state_datetime, &state_settings, BUTTON_B, nullptr);
+  fsm.add_transition(&state_datetime, &state_sleep,    BUTTON_P, nullptr);
+
+  fsm.add_transition(&state_settings, &state_settings_network, BUTTON_A, nullptr);
+  fsm.add_transition(&state_settings, &state_datetime, BUTTON_B, nullptr);
+  fsm.add_transition(&state_settings, &state_sleep,    BUTTON_P, nullptr);
+  
+  // Button A does nothing
+  fsm.add_transition(&state_settings_network, &state_settings_brightness, BUTTON_B, nullptr);
+  fsm.add_transition(&state_settings_network, &state_settings, BUTTON_P, nullptr);
+
+  fsm.add_transition(&state_settings_brightness, &state_settings_brightness_active, BUTTON_A, nullptr);
+  fsm.add_transition(&state_settings_brightness, &state_settings_sleep, BUTTON_B, nullptr);
+  fsm.add_transition(&state_settings_brightness, &state_settings, BUTTON_P, nullptr);
+
+  fsm.add_transition(&state_settings_brightness_active, &state_settings_brightness, BUTTON_A, nullptr);
+  // Button B is used to toggle brightness values
+  fsm.add_transition(&state_settings_brightness_active, &state_settings_brightness, BUTTON_P, nullptr);
+
+  fsm.add_transition(&state_settings_sleep, &state_sleep, BUTTON_A, nullptr);
+  fsm.add_transition(&state_settings_sleep, &state_settings_network, BUTTON_B, nullptr);
+  fsm.add_transition(&state_settings_sleep, &state_settings, BUTTON_P, nullptr);
+  
+  fsm.add_transition(&state_sleep, &state_splash, BUTTON_A, nullptr);
+  fsm.add_transition(&state_sleep, &state_splash, BUTTON_B, nullptr);
+  fsm.add_transition(&state_sleep, &state_splash, BUTTON_P, nullptr);
+
+  // Initialize default settings 
+  // TODO, integrate with TS_Settings??
+  brightness = 24;
+  
+  // Initialize private variables
+  clickA = clickB = clickP = hasUpdate = false;
+
+}
+
 
 // Static function to call instance method
 void _TS_UI::staticTask(void* parameter)
@@ -60,25 +138,8 @@ void _TS_UI::task(void* parameter)
   unsigned long savePowerStart = 0;
 
   button btnA;
-  bool clickA = 0;
-
   button btnB;
-  bool clickB = 0;
-
   button btnP;
-  bool clickP = 0;
-
-  int cursor = 0;
-  int selected = -1;
-
-  char options[][21] =
-  {
-    " Brightness |---- ",
-    " Network ",
-    " Sleep",
-  };
-
-  int brightness = 24;
 
   // Reduce screen brightness to minimum visibility to reduce power consumption
   TS_HAL.lcd_sleep(false);
@@ -90,113 +151,146 @@ void _TS_UI::task(void* parameter)
     clickB = this->read_button(TS_HAL.btn_b_get() != TS_ButtonState::NotPressed, btnB);
     clickP = this->read_button(TS_HAL.btn_power_get() != TS_ButtonState::NotPressed, btnP);
 
+    hasUpdate = clickA || clickB || clickP;
+    
     if (clickA)
     {
-      if (selected == cursor)
-      {
-        selected = -1;
-      } else {
-        selected = cursor;
-      }
+      TS_UI.toggle_button_a();
     }
-    if (selected == 0)
+
+    if (clickB)
     {
-        options[0][brightness / 20 + 11] = '-';
-      if (clickB)
-      {
-        brightness %= 100;
-        brightness += 20;
-      }
-      if (clickP)
-      {
-        brightness += 60;
-        brightness %= 100;
-        brightness += 20;
-      }
-      options[0][brightness / 20 + 11] = '|';
-      TS_HAL.lcd_brightness(brightness);
+      TS_UI.toggle_button_b();
     }
-    else
+
+    if (clickP)
     {
-      if (clickB)
-      {
-        ++cursor %= 3;
-        selected = -1;
-      }
-      if (clickP)
-      {
-        cursor += 2;
-        cursor %= 3;
-        selected = -1;
-      }
+      TS_UI.toggle_button_p();
     }
 
-    bool hasUpdate = clickA || clickB || clickP;
+    TS_UI.update();
 
-    if (hasUpdate)
-    {
-      if (millis() - savePowerStart < MIN_SLEEP_DURATION)
-      {
-        continue;
-      }
-      if (savePowerStart)
-      {
-        savePowerStart = 0;
-        selected = -1;
-        TS_HAL.lcd_sleep(false);
-        TS_HAL.lcd_brightness(brightness);
-      }
-
-      TS_DateTime datetime;
-      TS_HAL.rtc_get(datetime);
-
-      TS_HAL.lcd_cursor(0, 0);
-      // TODO: Does not work with F()
-
-      TS_HAL.lcd_printf("%04d-%02d-%02d ", datetime.year, datetime.month, datetime.day);
-      TS_HAL.lcd_printf("%02d:%02d:%02d\n", datetime.hour, datetime.minute, datetime.second);
-      TS_HAL.lcd_printf("Battery: %d%%", TS_HAL.power_get_batt_level());
-      if (TS_HAL.power_is_charging())
-      {
-        TS_HAL.lcd_printf(", Charging");
-      }
-      TS_HAL.lcd_printf("\n");
-      
-      for (int i = 0; i < 3; i++)
-      {
-        if (selected == i)
-        {
-          if (i == 1) 
-          {
-            bool wifiConnected = TS_RADIO.wifi_is_connected();
-            TS_HAL.lcd_printf(" [%s]      \n", wifiConnected ? " Connected " : " Not Connected ");
-          }
-          else
-          {
-            TS_HAL.lcd_printf(" [%s]      \n", options[i]);
-          } 
-        }
-        else if (cursor == i)
-        {
-          TS_HAL.lcd_printf("> %s   \n", options[i]);
-        }
-        else
-        {
-          TS_HAL.lcd_printf("  %s   \n", options[i]);
-        }
-      }
-
-      stackHighWaterMark = uxTaskGetStackHighWaterMark(NULL);
-      log_w("UI highwatermark: %d", stackHighWaterMark);
-
-      // Select option 3 to sleep.
-      if (selected == 2)
-      {
-        TS_HAL.lcd_sleep(true);
-        savePowerStart = millis();
-      }
-    }
+    //   stackHighWaterMark = uxTaskGetStackHighWaterMark(NULL);
+    //   log_w("UI highwatermark: %d", stackHighWaterMark);
 
     TS_HAL.sleep(TS_SleepMode::Task, 20);
   }
+}
+
+void _TS_UI::update()
+{
+  fsm.run_machine();
+}
+
+void _TS_UI::toggle_button_a()
+{
+  fsm.trigger(BUTTON_A);
+}
+
+void _TS_UI::toggle_button_b()
+{
+  fsm.trigger(BUTTON_B);
+}
+
+void _TS_UI::toggle_button_p()
+{
+  fsm.trigger(BUTTON_P);
+}
+
+
+void _TS_UI::state_splash_on_enter()
+{
+  TS_HAL.lcd_clear();
+  TS_HAL.lcd_cursor(0, 0);
+  TS_HAL.lcd_printf("Splash screen");
+}
+void _TS_UI::state_datetime_on_enter()
+{
+  TS_HAL.lcd_clear();
+
+  TS_DateTime datetime;
+  TS_HAL.rtc_get(datetime);
+
+  TS_HAL.lcd_cursor(0, 0);
+  // TODO: Does not work with F()
+
+  TS_HAL.lcd_printf("%04d-%02d-%02d ", datetime.year, datetime.month, datetime.day);
+  TS_HAL.lcd_printf("%02d:%02d:%02d\n", datetime.hour, datetime.minute, datetime.second);
+  TS_HAL.lcd_printf("Battery: %d%%", TS_HAL.power_get_batt_level());
+  if (TS_HAL.power_is_charging())
+  {
+    TS_HAL.lcd_printf(", Charging");
+  } else {
+    TS_HAL.lcd_printf("          ");
+  }
+  TS_HAL.lcd_printf("\n");
+}
+void _TS_UI::state_settings_on_enter()
+{
+  TS_HAL.lcd_clear();
+  TS_HAL.lcd_cursor(0, 0);
+  TS_HAL.lcd_printf("Settings screen");
+}
+
+void _TS_UI::state_settings_network_on_enter()
+{
+  TS_HAL.lcd_clear();
+  TS_HAL.lcd_cursor(0, 0);
+  TS_HAL.lcd_printf("Settings > Network\n");
+  bool wifiConnected = TS_RADIO.wifi_is_connected();
+  TS_HAL.lcd_printf("Status: %s\n", wifiConnected ? "Connected" : "Not Connected");
+}
+
+void _TS_UI::state_settings_brightness_on_enter()
+{
+  TS_HAL.lcd_clear();
+  TS_HAL.lcd_cursor(0, 0);
+  TS_HAL.lcd_printf("Settings > Brightness\n");
+  char printedString[21] = " Brightness ----- ";
+  printedString[brightness / 20 + 11] = '|';
+  TS_HAL.lcd_printf(printedString);
+  TS_HAL.lcd_brightness(brightness);
+}
+
+void _TS_UI::state_settings_brightness_active_on_enter()
+{
+  TS_HAL.lcd_clear();
+  TS_HAL.lcd_cursor(0, 0);
+  TS_HAL.lcd_printf("Settings > Brightness\n");
+  char printedString[21] = "[Brightness -----]";
+  printedString[brightness / 20 + 11] = '|';
+  TS_HAL.lcd_printf(printedString);
+  TS_HAL.lcd_brightness(brightness);
+}
+
+void _TS_UI::state_settings_brightness_active_on()
+{
+  if (clickB)
+  {
+    TS_HAL.lcd_cursor(0, LINE_HEIGHT);
+    char printedString[21] = "[Brightness -----]";      
+    brightness += 20;
+    brightness %= 100;
+    printedString[brightness / 20 + 11] = '|';
+    TS_HAL.lcd_printf(printedString);
+    TS_HAL.lcd_brightness(brightness);
+  }
+}
+
+void _TS_UI::state_settings_sleep_on_enter()
+{
+  TS_HAL.lcd_clear();
+  TS_HAL.lcd_cursor(0, 0);
+  TS_HAL.lcd_printf("Go to sleep?");
+}
+
+void _TS_UI::state_sleep_on_enter()
+{
+  TS_HAL.lcd_sleep(true);
+}
+
+void _TS_UI::state_sleep_on_exit()
+{
+  TS_HAL.lcd_sleep(false);
+  TS_HAL.lcd_brightness(brightness);
 }
