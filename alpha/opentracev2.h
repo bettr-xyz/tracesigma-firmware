@@ -9,6 +9,8 @@
 #define __OPENTRACE_V2__
 
 #include <stdint.h>
+#include <tuple>
+#include <unordered_map>
 #include <Arduino.h>
 #include <BLEUUID.h>
 #include <BLECharacteristic.h>
@@ -141,6 +143,7 @@ class _OT_ProtocolV2
     std::string       characteristicCache;
     OT_TempID         charCacheTempId;
     SemaphoreHandle_t characteristicCacheMutex;
+    std::unordered_map<std::string, std::tuple<int, std::string>> lastSeenPeers;
 };
 
 extern _OT_ProtocolV2 OT_ProtocolV2;
