@@ -90,6 +90,11 @@ bool _OT_ProtocolV2::scan_and_connect(uint8_t seconds, int8_t rssiCutoff)
   // Blocking scan
   BLEScanResults results = TS_HAL.ble_scan(seconds);
 
+  // rough approximation, don't do rtc_get() for each BLE MAC addr
+  TS_DateTime datetime;
+  TS_HAL.rtc_get(datetime);
+  uint32_t currMin = datetime.minute;
+
   uint16_t deviceCount = results.getCount();
   for (uint32_t i = 0; i < deviceCount; i++)
   {
@@ -107,20 +112,27 @@ bool _OT_ProtocolV2::scan_and_connect(uint8_t seconds, int8_t rssiCutoff)
 
     log_i("%s rssi: %d", deviceAddress.toString().c_str(), rssi);
 
-    // ignore if last-seen < x min
-    std::unordered_map<std::string, std::tuple<int, std::string>>::const_iterator got = this->lastSeenPeers.find(deviceAddress.toString());
-    if (got == this->lastSeenPeers.end())
+    auto it = this->lastSeenPeers.find(deviceAddress.toString());
+    // found BLE MAC addr in hashmap
+    if (it != this->lastSeenPeers.end())
     {
-      log_i("new peer");
+      log_i("seen peer");
+      // last seen < 5mins ago
+      if (std::get<0>(it->second) < currMin + 5)
+      {
+        // TODO: log tempid and rssi in Storage
+        continue;
+      }
+      else
+      {
+        // update last seen time for this BLE MAC addr
+        std::get<0>(it->second) = currMin;
+      }
     }
     else
     {
-      log_i("seen peer");
-      int lastSeenTime = std::get<0>(got->first);
-      if (lastSeenTime <= currTime + 5)
-      {
-        // log tempid and rssi in Storage
-      }
+      log_i("new peer");
+      this->lastSeenPeers.insert({{deviceAddress.toString(), std::make_tuple(currMin, "")}});
     }
 
     // Connect to each one and read + write iff parameters are correct
@@ -209,8 +221,12 @@ bool _OT_ProtocolV2::connect_and_exchange_impl(BLEClient *bleClient, BLEAdvertis
 
   log_i("BLE central Recv: %s", buf.c_str());
   
-  // cache last seen time of BLE MAC addr
-  this->lastSeenPeers.insert({{deviceAddress.toString(), std::make_tuple(0, 0)}});
+  // map BLE MAC addr to tempid
+  auto it = this->lastSeenPeers.find(address.toString());
+  if(it != this->lastSeenPeers.end())
+  {
+    std::get<1>(it->second) = connectionRecord.id;
+  }
 
   // TODO: store data read into connectionRecord somewhere
 
