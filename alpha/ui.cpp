@@ -55,6 +55,14 @@ _TS_UI::_TS_UI():
     [this]() { _TS_UI::state_settings_sleep_on_enter(); },
     nullptr,
     nullptr),
+  state_statistics(
+    [this]() { _TS_UI::state_statistics_on_enter(); },
+    nullptr,
+    nullptr),
+  state_statistics_info(
+    [this]() { _TS_UI::state_statistics_info_on_enter(); },
+    [this]() { _TS_UI::state_statistics_info_on(); },
+    nullptr),
   state_sleep(
     [this]() { _TS_UI::state_sleep_on_enter(); },
     nullptr,
@@ -72,7 +80,7 @@ _TS_UI::_TS_UI():
   fsm.add_transition(&state_datetime, &state_sleep,    BUTTON_P, nullptr);
 
   fsm.add_transition(&state_settings, &state_settings_network, BUTTON_A, nullptr);
-  fsm.add_transition(&state_settings, &state_datetime, BUTTON_B, nullptr);
+  fsm.add_transition(&state_settings, &state_statistics, BUTTON_B, nullptr);
   fsm.add_transition(&state_settings, &state_sleep,    BUTTON_P, nullptr);
   
   // Button A does nothing
@@ -91,6 +99,14 @@ _TS_UI::_TS_UI():
   fsm.add_transition(&state_settings_sleep, &state_settings_network, BUTTON_B, nullptr);
   fsm.add_transition(&state_settings_sleep, &state_settings, BUTTON_P, nullptr);
   
+  fsm.add_transition(&state_statistics, &state_statistics_info, BUTTON_A, nullptr);
+  fsm.add_transition(&state_statistics, &state_datetime, BUTTON_B, nullptr);
+  fsm.add_transition(&state_statistics, &state_sleep, BUTTON_P, nullptr);
+
+  fsm.add_transition(&state_statistics_info, &state_statistics, BUTTON_A, nullptr);
+  fsm.add_transition(&state_statistics_info, &state_statistics, BUTTON_B, nullptr);
+  fsm.add_transition(&state_statistics_info, &state_statistics, BUTTON_P, nullptr);
+
   fsm.add_transition(&state_sleep, &state_splash, BUTTON_A, nullptr);
   fsm.add_transition(&state_sleep, &state_splash, BUTTON_B, nullptr);
   fsm.add_transition(&state_sleep, &state_splash, BUTTON_P, nullptr);
@@ -245,22 +261,37 @@ void _TS_UI::state_datetime_on()
   // }
 }
 
+void draw_icon(const char* label, int16_t icon_width, int16_t icon_height, const uint16_t* icon_data, int8_t label_x_offset)
+{
+  TS_HAL.lcd_drawbitmap(
+    (TS_LCD_WIDTH - icon_width) / 2,
+    (TS_LCD_HEIGHT - icon_height - LINE_HEIGHT) / 2,
+    icon_width,
+    icon_height,
+    icon_data
+  );
+
+  TS_HAL.lcd_setTextSize(FONTSIZE_1);
+  TS_HAL.lcd_cursor(label_x_offset, (TS_LCD_HEIGHT + icon_height - LINE_HEIGHT) / 2);
+  TS_HAL.lcd_printf(label);
+}
+
 void _TS_UI::state_settings_on_enter()
 {
   clear_ui();
   draw_battery_icon();
-  
-  TS_HAL.lcd_drawbitmap(
-    (TS_LCD_WIDTH - ICON_GEAR_LARGE_W) / 2,
-    (TS_LCD_HEIGHT - ICON_GEAR_LARGE_H - LINE_HEIGHT) / 2,
-    ICON_GEAR_LARGE_W,
-    ICON_GEAR_LARGE_H,
-    icon_gear_large
-  );
+  draw_icon("Settings", ICON_GEAR_LARGE_W, ICON_GEAR_LARGE_H, icon_gear_large, 55);
+  // TS_HAL.lcd_drawbitmap(
+  //   (TS_LCD_WIDTH - ICON_GEAR_LARGE_W) / 2,
+  //   (TS_LCD_HEIGHT - ICON_GEAR_LARGE_H - LINE_HEIGHT) / 2,
+  //   ICON_GEAR_LARGE_W,
+  //   ICON_GEAR_LARGE_H,
+  //   icon_gear_large
+  // );
 
-  TS_HAL.lcd_setTextSize(FONTSIZE_1);
-  TS_HAL.lcd_cursor(55, (TS_LCD_HEIGHT + ICON_GEAR_LARGE_H - LINE_HEIGHT) / 2);
-  TS_HAL.lcd_printf("Settings");
+  // TS_HAL.lcd_setTextSize(FONTSIZE_1);
+  // TS_HAL.lcd_cursor(55, (TS_LCD_HEIGHT + ICON_GEAR_LARGE_H - LINE_HEIGHT) / 2);
+  // TS_HAL.lcd_printf("Settings");
 }
 
 void _TS_UI::state_settings_network_on_enter()
@@ -268,7 +299,7 @@ void _TS_UI::state_settings_network_on_enter()
   clear_ui();
   draw_battery_icon();
   TS_HAL.lcd_setTextSize(FONTSIZE_1);
-  TS_HAL.lcd_cursor(0, 40);
+  TS_HAL.lcd_cursor(0, 10);
   TS_HAL.lcd_printf("Settings > Network\n");
   bool wifiConnected = TS_RADIO.wifi_is_connected();
   TS_HAL.lcd_printf("Status: %s\n", wifiConnected ? "Connected" : "Not Connected");
@@ -279,7 +310,7 @@ void _TS_UI::state_settings_brightness_on_enter()
   clear_ui();
   draw_battery_icon();
   TS_HAL.lcd_setTextSize(FONTSIZE_1);
-  TS_HAL.lcd_cursor(0, 40);
+  TS_HAL.lcd_cursor(0, 10);
   TS_HAL.lcd_printf("Settings > Brightness\n");
   char printedString[21] = " Brightness ----- ";
   printedString[brightness / 20 + 11] = '|';
@@ -292,7 +323,7 @@ void _TS_UI::state_settings_brightness_active_on_enter()
   clear_ui();
   draw_battery_icon();
   TS_HAL.lcd_setTextSize(FONTSIZE_1);
-  TS_HAL.lcd_cursor(0, 40);
+  TS_HAL.lcd_cursor(0, 10);
   TS_HAL.lcd_printf("Settings > Brightness\n");
   char printedString[21] = " Brightness ----- ";
   printedString[brightness / 20 + 11] = '|';
@@ -304,7 +335,7 @@ void _TS_UI::state_settings_brightness_active_on()
 {
   if (clickB)
   {
-    TS_HAL.lcd_cursor(0, 40 + LINE_HEIGHT * FONTSIZE_1);
+    TS_HAL.lcd_cursor(0, 20 + LINE_HEIGHT * FONTSIZE_1);
     char printedString[21] = " Brightness ----- ";  
     brightness %= 100;   
     brightness += 20;
@@ -319,8 +350,31 @@ void _TS_UI::state_settings_sleep_on_enter()
   clear_ui();
   draw_battery_icon();
   TS_HAL.lcd_setTextSize(FONTSIZE_1);
-  TS_HAL.lcd_cursor(0, 40);
+  TS_HAL.lcd_cursor(0, 10);
   TS_HAL.lcd_printf("Go to sleep?");
+}
+
+void _TS_UI::state_statistics_on_enter()
+{
+  clear_ui();
+  draw_battery_icon();
+  draw_icon("Statistics", ICON_STATS_W, ICON_STATS_H, icon_stats, 50);
+}
+
+void _TS_UI::state_statistics_info_on_enter()
+{
+  clear_ui();
+  draw_battery_icon();
+}
+
+void _TS_UI::state_statistics_info_on()
+{
+  TS_HAL.lcd_setTextSize(FONTSIZE_1);
+  TS_HAL.lcd_cursor(0, 10);
+  TS_HAL.lcd_printf("Statistics > Info\n");
+  TS_HAL.lcd_printf(" Storage    : %d%%  \n", 31);
+  TS_HAL.lcd_printf(" Exchanges  : %d   \n", 42);
+  TS_HAL.lcd_printf(" Crashes    : %d   \n", 50);
 }
 
 void _TS_UI::state_sleep_on_enter()

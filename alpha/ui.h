@@ -12,6 +12,8 @@ enum TS_UIState
   SETTINGS_BRIGHTNESS,
   SETTINGS_BRIGHTNESS_ACTIVE,
   SETTINGS_SLEEP,
+  STATISTICS,
+  STATISTICS_INFO,
   SLEEP
 };
 
@@ -59,6 +61,8 @@ class _TS_UI
     FunctionState state_settings_brightness;
     FunctionState state_settings_brightness_active;
     FunctionState state_settings_sleep;
+    FunctionState state_statistics;
+    FunctionState state_statistics_info;
     FunctionState state_sleep;
 
     //fsm state functions
@@ -71,6 +75,9 @@ class _TS_UI
     void state_settings_brightness_active_on_enter();
     void state_settings_brightness_active_on();
     void state_settings_sleep_on_enter();
+    void state_statistics_on_enter();
+    void state_statistics_info_on_enter();
+    void state_statistics_info_on();
     void state_sleep_on_enter();
     void state_sleep_on_exit();
 
