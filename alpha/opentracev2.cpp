@@ -13,6 +13,68 @@ extern "C" {
 #include <BLEUtils.h>
 #include <ArduinoJson.h>
 
+uint8_t PeerCache::getTimestamp(std::tuple<uint8_t, std::string> tp) { return std::get<0>(tp); }
+void PeerCache::setTimestamp(std::tuple<uint8_t, std::string> tp, uint8_t time) { std::get<0>(tp) = time; }
+std::string PeerCache::getTempid(std::tuple<uint8_t, std::string> tp) { return std::get<1>(tp); }
+void PeerCache::setTempid(std::tuple<uint8_t, std::string> tp, std::string tempid) { std::get<1>(tp) = tempid;; }
+
+// if should connect to peer: return tempid (could be empty string if connection not successful)
+// else: update/insert peer, return empty string
+std::string PeerCache::shouldConnect(std::string BLEAddrStr, uint8_t currMin)
+{
+  auto it = this->peers.find(BLEAddrStr);
+  // BLE MAC addr found in hashmap
+  if (it != this->peers.end())
+  {
+    // last seen < threshold
+    if (this->getTimestamp(it->second) < currMin + this->threshMin)
+    {
+      // return tempid
+      return this->getTempid(it->second);
+    }
+  }
+  return "";
+}
+
+void PeerCache::updateOrInsertPeer(std::string BLEAddrStr, uint8_t currMin)
+{
+  auto it = this->peers.find(BLEAddrStr);
+  // BLE MAC addr not found in hashmap
+  if (it != this->peers.end())
+  {
+    // last seen < threshold
+    if (this->getTimestamp(it->second) >= currMin + this->threshMin)
+    {
+      // update last seen time for this BLE MAC addr
+      this->setTimestamp(it->second, currMin);
+    }
+  }
+  else
+  {
+    this->peers.insert({{BLEAddrStr, std::make_tuple(currMin, "")}});
+  }
+}
+
+// update tempid associated to peer after successful connection
+void PeerCache::updatePeer(std::string BLEAddrStr, std::string tempid)
+{
+  auto it = this->peers.find(BLEAddrStr);
+  if(it != this->peers.end())
+  {
+    this->setTempid(it->second, tempid);
+  }
+}
+
+// remove peers that were last seen >15mins ago or have empty string as tempid (connection not successful)
+void PeerCache::cleanup(uint8_t currMin)
+{
+  for (auto it = this->peers.begin(); it != this->peers.end(); )
+  {
+      if (this->getTimestamp(it->second) >= currMin + this->validTempidMin) this->peers.erase(it++);
+      else ++it;
+  }
+}
+
 //
 // Init
 //
@@ -93,7 +155,7 @@ bool _OT_ProtocolV2::scan_and_connect(uint8_t seconds, int8_t rssiCutoff)
   // rough approximation, don't do rtc_get() for each BLE MAC addr
   TS_DateTime datetime;
   TS_HAL.rtc_get(datetime);
-  uint32_t currMin = datetime.minute;
+  uint8_t currMin = datetime.minute;
 
   uint16_t deviceCount = results.getCount();
   for (uint32_t i = 0; i < deviceCount; i++)
@@ -112,27 +174,15 @@ bool _OT_ProtocolV2::scan_and_connect(uint8_t seconds, int8_t rssiCutoff)
 
     log_i("%s rssi: %d", deviceAddress.toString().c_str(), rssi);
 
-    auto it = this->lastSeenPeers.find(deviceAddress.toString());
-    // found BLE MAC addr in hashmap
-    if (it != this->lastSeenPeers.end())
+    std::string tempid = this->peerCache.shouldConnect(deviceAddress.toString(), currMin);
+    if (tempid != "")
     {
-      log_i("seen peer");
-      // last seen < 5mins ago
-      if (std::get<0>(it->second) < currMin + 5)
-      {
-        // TODO: log tempid and rssi in Storage
-        continue;
-      }
-      else
-      {
-        // update last seen time for this BLE MAC addr
-        std::get<0>(it->second) = currMin;
-      }
+      // TODO: log tempid and rssi in Storage
+      continue;
     }
     else
     {
-      log_i("new peer");
-      this->lastSeenPeers.insert({{deviceAddress.toString(), std::make_tuple(currMin, "")}});
+      this->peerCache.updateOrInsertPeer(deviceAddress.toString(), currMin);
     }
 
     // Connect to each one and read + write iff parameters are correct
@@ -221,12 +271,7 @@ bool _OT_ProtocolV2::connect_and_exchange_impl(BLEClient *bleClient, BLEAdvertis
 
   log_i("BLE central Recv: %s", buf.c_str());
   
-  // map BLE MAC addr to tempid
-  auto it = this->lastSeenPeers.find(address.toString());
-  if(it != this->lastSeenPeers.end())
-  {
-    std::get<1>(it->second) = connectionRecord.id;
-  }
+  this->peerCache.updatePeer(address.toString(), connectionRecord.id);
 
   // TODO: store data read into connectionRecord somewhere
 
