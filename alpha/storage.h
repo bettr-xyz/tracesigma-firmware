@@ -87,6 +87,7 @@ class _TS_Storage
     _TS_Storage();
 
     void begin();
+    void reset();
 
     //
     // Settings in Virtual EEPROM
@@ -393,6 +394,9 @@ public:
   {    
     // prune all files
     int pruned = TS_Storage.peer_prune(-1, &test_time);
+    
+    TS_Storage.reset();
+    
     if(pruned == 2)
     {
       return true;

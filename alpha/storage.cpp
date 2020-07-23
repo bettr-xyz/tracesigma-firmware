@@ -117,7 +117,7 @@ uint8_t TS_PeerIterator::log()
 _TS_Storage TS_Storage;
 _TS_Storage::_TS_Storage()
 {
-  lastCleanupMins = 0;
+  reset();
 }
 
 void _TS_Storage::begin()
@@ -158,6 +158,14 @@ void _TS_Storage::begin()
   }
   
   root.close();
+}
+
+void _TS_Storage::reset()
+{
+  // Reset data structures
+  lastCleanupMins = 0;
+  tempPeers.clear();
+  peerCache.clear();
 }
 
 
@@ -398,7 +406,7 @@ TS_PeerIterator* _TS_Storage::peer_get_next(TS_PeerIterator* it)
     it->fileId = SPIFFS.open(it->dayFileName.c_str(), "r");
     if(!it->fileId)
     {
-      log_e("Failed to open file %s for r", it->dayFileName);
+      log_e("Failed to open file %s for r", it->dayFileName.c_str());
       delete it;
       return NULL;
     }
