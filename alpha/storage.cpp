@@ -706,7 +706,7 @@ uint16_t _TS_Storage::peer_id_get_or_add(const std::string &tempId, TS_Peer *pee
   ++id;
 
   // append new entry
-  f.printf("%s,%d,%s,%s\n", tempId, id, peer->org, peer->deviceType);
+  f.printf("%s,%d,%s,%s\n", tempId.c_str(), id, peer->org.c_str(), peer->deviceType.c_str());
   f.close();
   return id;
 }
