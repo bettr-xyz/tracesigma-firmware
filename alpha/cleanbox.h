@@ -33,6 +33,14 @@ inline int time_diff(int t1, int t2, int wrap)
     : t;
 }
 
+// Calculate simple diff between two sets of mmdd, assumes 31 days in a month
+inline int mmdd_diff(int mm1, int dd1, int mm2, int dd2)
+{
+  int t1 = mm1 * 31 + dd1;
+  int t2 = mm2 * 31 + dd2;
+  return time_diff(t1, t2, 31);
+}
+
 // Helper class to track smallest N values
 // - `front` always contains smallest
 // - other elements in the may not be in order, but will be smaller than `front`

@@ -22,6 +22,8 @@
 #define SECS_PER_DAY      86400
 #define SECS_PER_MIN      60
 
+#define FILESOPEN_MAX     3
+
 
 struct PeerIncidentFileFrame
 {
@@ -89,18 +91,18 @@ uint8_t TS_PeerIterator::log()
 
   if(peerId == NULL)
   {
-    log_i("TS_PeerIterator %s None", this->getDayFile());
+    log_i("TS_PeerIterator %s None", this->getDayFile()->c_str());
     return 0;
   }
   else if(pi == NULL)
   {
-    log_i("TS_PeerIterator %s %s None ", this->getDayFile(), peerId);
+    log_i("TS_PeerIterator %s %s None ", this->getDayFile()->c_str(), peerId->c_str());
     return 1;
   }
   else
   {
     log_i("TS_PeerIterator %s %s %d %s %s (%d-%d-%d %d:%d:%d) (%d) %d, %d, %d %d %d",
-      this->getDayFile(), peerId, pi->id, pi->org, pi->deviceType,
+      this->getDayFile()->c_str(), peerId->c_str(), pi->id, pi->org.c_str(), pi->deviceType.c_str(),
       pi->firstSeen.day, pi->firstSeen.month, pi->firstSeen.year, pi->firstSeen.hour, pi->firstSeen.minute, pi->firstSeen.second,
       pi->mins, pi->rssi_min, pi->rssi_max, pi->rssi_sum, pi->rssi_samples, pi->rssi_dsquared);
     return 2;
@@ -136,7 +138,7 @@ void _TS_Storage::begin()
   
   // format on error, basepath, maxOpenFiles
   // - use the shortest path, f - spi flash
-  if(!SPIFFS.begin(true, "/f", 1))
+  if(!SPIFFS.begin(true, "/f", FILESOPEN_MAX))
   {
     log_e("SPIFFS init error");
 
@@ -148,11 +150,13 @@ void _TS_Storage::begin()
   log_i("Listing all files");
   File root = SPIFFS.open("/");
   File file = root.openNextFile();
-  while(file){
+  while(file)
+  {
     log_i("FILE: %s", file.name());
     file.close();
     file = root.openNextFile();
   }
+  
   root.close();
 }
 
@@ -229,7 +233,7 @@ uint8_t _TS_Storage::file_ids_readall(uint8_t maxCount, std::string *ids)
   File f = SPIFFS.open("/ids", "r+");
   if(!f)
   {
-    log_e("Failed to open file /ids for r+");
+    log_e("Failed to open ids for r+");
     return 0;
   }
   
@@ -339,20 +343,26 @@ TS_PeerIterator* _TS_Storage::peer_get_next(TS_PeerIterator* it)
 {
   if(it == NULL)
   {
+    // log_i("DEBUG: new iterator");
+    
     // Initialize new iterator
     it = new TS_PeerIterator();
 
     // List all files of /p/[mmdd]
     // Ignore files of /p/[mmdd]/*
-    File root = SPIFFS.open("/p/");
+    File root = SPIFFS.open("/p");
     if(root)
     {
+      // log_i("DEBUG: root: %s", root.name());
+      
       File file = root.openNextFile();
       while(file)
       {
-        if(!file.isDirectory())
+        // log_i("DEBUG: filename %s", file.name());
+        
+        if(strlen(file.name()) == 7)
         {
-          // a file
+          // a peer file
           it->dayFileNames.push_back(std::string(file.name()));
         }
         
@@ -377,6 +387,8 @@ TS_PeerIterator* _TS_Storage::peer_get_next(TS_PeerIterator* it)
     it->fileIncident.close();
   }
 
+  // log_i("DEBUG: dayFileNames size: %d", it->dayFileNames.size());
+
   if(it->dayFileNames.size() > 0)
   {
     // Get next dayfile
@@ -395,6 +407,8 @@ TS_PeerIterator* _TS_Storage::peer_get_next(TS_PeerIterator* it)
     this->peer_get_next_peer(it);
     return it;
   }
+
+  return it;
 }
 
 TS_PeerIterator* _TS_Storage::peer_get_next_peer(TS_PeerIterator* it)
@@ -412,19 +426,26 @@ TS_PeerIterator* _TS_Storage::peer_get_next_peer(TS_PeerIterator* it)
   {
     it->fileIncident.close();
   }
+
+  // log_i("DEBUG: peer_get_next_peer");
   
   // Get the next entry in file
   // File is /p/[mmdd]
   // - tempid,id,org,deviceType\n
   if(it->fileId.available())
   {
+    log_i("DEBUG: fileid available: %d", it->fileId.available());
+    
     it->peerId = std::string( it->fileId.readStringUntil(',').c_str() );
     it->peer.id = atoi( it->fileId.readStringUntil(',').c_str() );
     it->peer.org = std::string( it->fileId.readStringUntil(',').c_str() );
     it->peer.deviceType = std::string( it->fileId.readStringUntil('\n').c_str() );
 
     char filename[14];
-    sprintf(filename, "%s/%d", it->dayFileName, it->peer.id);
+    sprintf(filename, "%s/%d", it->dayFileName.c_str(), it->peer.id);
+
+    log_i("DEBUG: filename: %s", filename);
+    
     it->fileIncident = SPIFFS.open(filename, "r");
     if(!it->fileIncident)
     {
@@ -472,9 +493,40 @@ TS_PeerIterator* _TS_Storage::peer_get_next_incident(TS_PeerIterator* it)
   return it;
 }
 
-void _TS_Storage::peer_prune(uint8_t days, TS_DateTime *current)
+int _TS_Storage::peer_prune(uint8_t days, TS_DateTime *current)
 {
-  // TODO:
+  // prune files which are older than [days]
+  char filename[40];
+  int removed = 0;
+
+  // List all files of /p/[mmdd]
+  File root = SPIFFS.open("/p");
+  if(root)
+  {
+    log_i("DEBUG: root: %s", root.name());
+    
+    File file = root.openNextFile();
+    while(file)
+    {
+      log_i("DEBUG: file: %s", file.name());
+      
+      // filenames expected to be <= 32 char     
+      strncpy(filename, file.name(), sizeof(filename));
+      file.close();
+
+      if(filename_older_than(filename, days, current))
+      {
+        SPIFFS.remove(filename);
+        ++removed;
+      }
+      
+      file = root.openNextFile();
+    }
+    
+    root.close();
+  }
+  
+  return removed;
 }
 
 uint16_t _TS_Storage::peer_cleanup(TS_DateTime *current)
@@ -593,14 +645,18 @@ void _TS_Storage::peer_cache_commit(const std::string &key, TS_Peer *peer, TS_Da
 
 
 
-void _TS_Storage::peer_cache_commit_all(TS_DateTime *current)
+int _TS_Storage::peer_cache_commit_all(TS_DateTime *current)
 {
+  int count = 0;
   for(auto peer = this->peerCache.begin(); peer != this->peerCache.end();)
   {
     // save iterator as commit will erase entry
     auto tmpPeer = peer++;
     this->peer_cache_commit(tmpPeer->first, &tmpPeer->second, current);
+    ++count;
   }
+
+  return count;
 }
 
 //
@@ -694,6 +750,34 @@ void _TS_Storage::peer_rssi_add_sample(TS_Peer *peer, int8_t rssi)
   int16_t mean = peer->rssi_sum / peer->rssi_samples;
   int16_t ds = (rssi - mean) * (rssi - mean);
   peer->rssi_dsquared += ds;
+}
+
+bool _TS_Storage::filename_older_than(char * filename, int8_t days, TS_DateTime *current)
+{
+  // Expected filename: /p/[mmdd]*
+  char tee[3] = {0};
+  int month, day;
+  
+  if(strlen(filename) < 7) return false;
+  
+  tee[0] = filename[3];
+  tee[1] = filename[4];
+
+  if(!isdigit(tee[0]) || !isdigit(tee[1])) return false;
+  month = atoi(tee);
+  if(month < 1 || month > 12) return false;
+
+  tee[0] = filename[5];
+  tee[1] = filename[6];
+
+  if(!isdigit(tee[0]) || !isdigit(tee[1])) return false;
+  day = atoi(tee);
+  if(day < 1 || day > 31) return false;
+
+  int diff = mmdd_diff(current->month, current->day, month, day);
+  //log_i("DEBUG: diff: %d", diff);
+  
+  return (diff > days);
 }
 
 
