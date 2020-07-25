@@ -122,6 +122,7 @@ class _TS_HAL
     // RTC
     //
     void rtc_get(TS_DateTime &);
+    uint32_t rtc_get_mins(void);
     void rtc_set(TS_DateTime &);
 
 

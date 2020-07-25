@@ -13,14 +13,14 @@ extern "C" {
 #include <BLEUtils.h>
 #include <ArduinoJson.h>
 
-uint8_t PeerCache::getTimestamp(std::tuple<uint8_t, std::string> tp) { return std::get<0>(tp); }
-void PeerCache::setTimestamp(std::tuple<uint8_t, std::string> tp, uint8_t time) { std::get<0>(tp) = time; }
-std::string PeerCache::getTempid(std::tuple<uint8_t, std::string> tp) { return std::get<1>(tp); }
-void PeerCache::setTempid(std::tuple<uint8_t, std::string> tp, std::string tempid) { std::get<1>(tp) = tempid;; }
+uint32_t _PeerCache::getTimestamp(std::tuple<uint32_t, std::string> tp) { return std::get<0>(tp); }
+void _PeerCache::setTimestamp(std::tuple<uint32_t, std::string> tp, uint32_t time) { std::get<0>(tp) = time; }
+std::string _PeerCache::getTempid(std::tuple<uint32_t, std::string> tp) { return std::get<1>(tp); }
+void _PeerCache::setTempid(std::tuple<uint32_t, std::string> tp, std::string tempid) { std::get<1>(tp) = tempid;; }
 
 // if should connect to peer: return tempid (could be empty string if connection not successful)
 // else: update/insert peer, return empty string
-std::string PeerCache::shouldConnect(std::string BLEAddrStr, uint8_t currMin)
+std::string _PeerCache::shouldConnect(std::string BLEAddrStr, uint32_t currMin)
 {
   auto it = this->peers.find(BLEAddrStr);
   // BLE MAC addr found in hashmap
@@ -36,7 +36,7 @@ std::string PeerCache::shouldConnect(std::string BLEAddrStr, uint8_t currMin)
   return "";
 }
 
-void PeerCache::updateOrInsertPeer(std::string BLEAddrStr, uint8_t currMin)
+void _PeerCache::updateOrInsertPeer(std::string BLEAddrStr, uint32_t currMin)
 {
   auto it = this->peers.find(BLEAddrStr);
   // BLE MAC addr not found in hashmap
@@ -56,7 +56,7 @@ void PeerCache::updateOrInsertPeer(std::string BLEAddrStr, uint8_t currMin)
 }
 
 // update tempid associated to peer after successful connection
-void PeerCache::updatePeer(std::string BLEAddrStr, std::string tempid)
+void _PeerCache::updatePeer(std::string BLEAddrStr, std::string tempid)
 {
   auto it = this->peers.find(BLEAddrStr);
   if(it != this->peers.end())
@@ -66,7 +66,7 @@ void PeerCache::updatePeer(std::string BLEAddrStr, std::string tempid)
 }
 
 // remove peers that were last seen >15mins ago or have empty string as tempid (connection not successful)
-void PeerCache::cleanup(uint8_t currMin)
+void _PeerCache::cleanup(uint32_t currMin)
 {
   for (auto it = this->peers.begin(); it != this->peers.end(); )
   {
@@ -153,9 +153,7 @@ bool _OT_ProtocolV2::scan_and_connect(uint8_t seconds, int8_t rssiCutoff)
   BLEScanResults results = TS_HAL.ble_scan(seconds);
 
   // rough approximation, don't do rtc_get() for each BLE MAC addr
-  TS_DateTime datetime;
-  TS_HAL.rtc_get(datetime);
-  uint8_t currMin = datetime.minute;
+  uint32_t currMin = TS_HAL.rtc_get_mins();
 
   uint16_t deviceCount = results.getCount();
   for (uint32_t i = 0; i < deviceCount; i++)

@@ -272,6 +272,17 @@ void _TS_HAL::rtc_get(TS_DateTime &dt)
   EXIT_CRITICAL;
 }
 
+uint32_t _TS_HAL::rtc_get_mins(void)
+{
+  TS_DateTime dt;
+  TS_HAL.rtc_get(dt);
+  return dt.minute +
+         dt.hour * 60 +
+         dt.day * 1440 +
+         dt.month * 43800 +
+         dt.year * 525600;
+}
+
 void _TS_HAL::rtc_set(TS_DateTime &dt)
 {
   ENTER_CRITICAL;
