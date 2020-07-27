@@ -163,7 +163,6 @@ class _OT_ProtocolV2
     std::string       characteristicCache;
     OT_TempID         charCacheTempId;
     SemaphoreHandle_t characteristicCacheMutex;
-    _PeerCache peerCache;
 };
 
 extern _OT_ProtocolV2 OT_ProtocolV2;

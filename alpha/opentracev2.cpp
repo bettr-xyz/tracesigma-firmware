@@ -13,6 +13,8 @@ extern "C" {
 #include <BLEUtils.h>
 #include <ArduinoJson.h>
 
+_PeerCache PeerCache;
+
 uint32_t _PeerCache::getTimestamp(std::tuple<uint32_t, std::string> tp) { return std::get<0>(tp); }
 void _PeerCache::setTimestamp(std::tuple<uint32_t, std::string> tp, uint32_t time) { std::get<0>(tp) = time; }
 std::string _PeerCache::getTempid(std::tuple<uint32_t, std::string> tp) { return std::get<1>(tp); }
@@ -172,7 +174,7 @@ bool _OT_ProtocolV2::scan_and_connect(uint8_t seconds, int8_t rssiCutoff)
 
     log_i("%s rssi: %d", deviceAddress.toString().c_str(), rssi);
 
-    std::string tempid = this->peerCache.shouldConnect(deviceAddress.toString(), currMin);
+    std::string tempid = PeerCache.shouldConnect(deviceAddress.toString(), currMin);
     if (tempid != "")
     {
       // TODO: log tempid and rssi in Storage
@@ -180,7 +182,7 @@ bool _OT_ProtocolV2::scan_and_connect(uint8_t seconds, int8_t rssiCutoff)
     }
     else
     {
-      this->peerCache.updateOrInsertPeer(deviceAddress.toString(), currMin);
+      PeerCache.updateOrInsertPeer(deviceAddress.toString(), currMin);
     }
 
     // Connect to each one and read + write iff parameters are correct
@@ -269,7 +271,7 @@ bool _OT_ProtocolV2::connect_and_exchange_impl(BLEClient *bleClient, BLEAdvertis
 
   log_i("BLE central Recv: %s", buf.c_str());
   
-  this->peerCache.updatePeer(address.toString(), connectionRecord.id);
+  PeerCache.updatePeer(address.toString(), connectionRecord.id);
 
   // TODO: store data read into connectionRecord somewhere
 
