@@ -1,6 +1,6 @@
 # tracestick
 
-Read more about tracestick at the [main site](https://sites.google.com/view/tracestick)!
+Read more about tracestick at the [main site](https://sites.google.com/view/tracestick) or at the [wiki](https://github.com/bettr-xyz/tracestick-firmware/wiki)
 
 
 ## Getting Started (Arduino)
