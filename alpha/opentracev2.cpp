@@ -118,6 +118,25 @@ void _OT_ProtocolV2::begin()
   this->bleAdvertising->setMinPreferred(0x06);  // functions that help with iPhone connections issue
   // TODO: find out what setMin and setMax interval really means
 
+  xTaskCreatePinnedToCore(
+    _OT_ProtocolV2::staticTask, // thread fn
+    "peerCacheCleanupTask",     // identifier
+    2000,                       // stack size
+    NULL,                       // parameter
+    0,                          // main loop is running at priority 1, idle is 0, ui is at 2
+    NULL,                       // handle
+    1);                         // core
+}
+
+void _OT_ProtocolV2::staticTask(void* parameter)
+{
+  while(true)
+  {
+    uint32_t currMin = TS_HAL.rtc_get_mins();
+    PeerCache.cleanup(currMin);
+
+    TS_HAL.sleep(TS_SleepMode::Task, 5 * MIN_TO_MS);
+  }
 }
 
 BLEUUID& _OT_ProtocolV2::getServiceUUID()

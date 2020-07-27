@@ -30,6 +30,8 @@
 
 #define OT_TEMPID_MAX   100
 
+#define MIN_TO_MS 60000
+
 // TODO: store in mem as byte arrays instead of encoded strings
 
 //
@@ -82,6 +84,8 @@ class _OT_ProtocolV2
     _OT_ProtocolV2();
 
     void begin();
+
+    static void staticTask(void* parameter);
 
     //////////
     // UUIDs
