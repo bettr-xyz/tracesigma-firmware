@@ -30,7 +30,9 @@
 
 #define OT_TEMPID_MAX   100
 
-#define MIN_TO_MS 60000
+#define MIN_TO_MS 60000     // convert minute to ms
+#define CACHE_THRESH_MIN 5  // ignore peers if last_seen <= threshold (minutes)
+#define TEMPID_VALID_MIN 15 // minutes tempid is valid for
 
 // TODO: store in mem as byte arrays instead of encoded strings
 
@@ -65,10 +67,6 @@ class _PeerCache
     void updatePeer(std::string BLEAddrStr, std::string tempid);
     void cleanup(uint32_t currMin);
   private:
-    // ignore recently connected peers if < threshold (minutes)
-    uint32_t threshMin = 5;
-    uint32_t validTempidMin = 15;
-
     std::unordered_map<std::string, std::tuple<uint32_t, std::string>> peers;
     // helper functions
     uint32_t getTimestamp(std::tuple<uint32_t, std::string> tp);

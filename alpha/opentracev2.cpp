@@ -29,7 +29,7 @@ std::string _PeerCache::shouldConnect(std::string BLEAddrStr, uint32_t currMin)
   if (it != this->peers.end())
   {
     // last seen < threshold
-    if (this->getTimestamp(it->second) < currMin + this->threshMin)
+    if (this->getTimestamp(it->second) < currMin + CACHE_THRESH_MIN)
     {
       // return tempid
       return this->getTempid(it->second);
@@ -45,7 +45,7 @@ void _PeerCache::updateOrInsertPeer(std::string BLEAddrStr, uint32_t currMin)
   if (it != this->peers.end())
   {
     // last seen < threshold
-    if (this->getTimestamp(it->second) >= currMin + this->threshMin)
+    if (this->getTimestamp(it->second) >= currMin + CACHE_THRESH_MIN)
     {
       // update last seen time for this BLE MAC addr
       this->setTimestamp(it->second, currMin);
@@ -72,7 +72,7 @@ void _PeerCache::cleanup(uint32_t currMin)
 {
   for (auto it = this->peers.begin(); it != this->peers.end(); )
   {
-      if (this->getTimestamp(it->second) >= currMin + this->validTempidMin) this->peers.erase(it++);
+      if (this->getTimestamp(it->second) >= currMin + TEMPID_VALID_MIN) this->peers.erase(it++);
       else ++it;
   }
 }
