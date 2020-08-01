@@ -1,4 +1,6 @@
-#include "cleanbox.h"
+#include "cleanbox.h" // This has to be first
+#include "tests.h"    // This has to be second
+
 #include "hal.h"
 #include "radio.h"
 #include "ui.h"
@@ -84,6 +86,12 @@ void setup() {
 
   log_w("Crash count: %d", TS_PersistMem.crashCount);
   log_i("Setup completed free heap: %d", ESP.getFreeHeap());
+
+#ifdef TESTDRIVER
+
+  TS_StorageTests.run_all_repeatedly();
+
+#endif
 }
 
 int skips = 0;
