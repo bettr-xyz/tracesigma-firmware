@@ -59,20 +59,20 @@ struct OT_ConnectionRecord
 // Classes
 //
 
-class _PeerCache
+class _OT_ProtocolV2_PeerCache
 {
   public:
-    std::string shouldConnect(std::string BLEAddrStr, uint32_t currMin);
-    void updateOrInsertPeer(std::string BLEAddrStr, uint32_t currMin);
-    void updatePeer(std::string BLEAddrStr, std::string tempid);
+    std::string shouldConnect(const std::string &bleAddrStr, uint32_t currMin);
+    void updateOrInsertPeer(const std::string &bleAddrStr, uint32_t currMin);
+    void updatePeer(const std::string &bleAddrStr, std::string tempid);
     void cleanup(uint32_t currMin);
   private:
     std::unordered_map<std::string, std::tuple<uint32_t, std::string>> peers;
     // helper functions
-    uint32_t getTimestamp(std::tuple<uint32_t, std::string> tp);
-    void setTimestamp(std::tuple<uint32_t, std::string> tp, uint32_t time);
-    std::string getTempid(std::tuple<uint32_t, std::string> tp);
-    void setTempid(std::tuple<uint32_t, std::string> tp, std::string tempid);
+    uint32_t getTimestamp(std::tuple<uint32_t, std::string> &tp);
+    void setTimestamp(std::tuple<uint32_t, std::string> &tp, uint32_t time);
+    std::string getTempid(std::tuple<uint32_t, std::string> &tp);
+    void setTempid(std::tuple<uint32_t, std::string> &tp, std::string &tempid);
 };
 
 class _OT_ProtocolV2
