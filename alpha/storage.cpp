@@ -24,6 +24,19 @@
 
 #define FILESOPEN_MAX     3
 
+#ifndef DEFAULT_UID
+  #define DEFAULT_UID "0123456789"
+#endif
+#ifndef WIFI_SSID
+  #define WIFI_SSID "test"        // Enter your SSID here
+#endif
+#ifndef WIFI_PASS
+  #define WIFI_PASS "password"    // Enter your WiFi password here
+#endif
+
+
+
+
 
 struct PeerIncidentFileFrame
 {
@@ -147,17 +160,21 @@ void _TS_Storage::begin()
   }
 
   // dump all files
-  log_i("Listing all files");
-  File root = SPIFFS.open("/");
-  File file = root.openNextFile();
-  while(file)
   {
-    log_i("FILE: %s", file.name());
-    file.close();
-    file = root.openNextFile();
+    log_i("Listing all files");
+    File root = SPIFFS.open("/");
+    File file = root.openNextFile();
+    while(file)
+    {
+      log_i("FILE: %s", file.name());
+      file.close();
+      file = root.openNextFile();
+    }
+    
+    root.close();
   }
-  
-  root.close();
+
+  this->set_default_settings();
 }
 
 void _TS_Storage::reset()
@@ -786,6 +803,48 @@ bool _TS_Storage::filename_older_than(char * filename, int8_t days, TS_DateTime 
   //log_i("DEBUG: diff: %d", diff);
   
   return (diff > days);
+}
+
+void _TS_Storage::set_default_settings()
+{ 
+  auto settings = this->settings_get();
+
+  bool settingsUpdated = false;
+
+  if (strcmp(settings->userId, "") == 0)
+  {
+    memset(settings->userId, '\0', sizeof(settings->userId));
+    strcpy(settings->userId, DEFAULT_UID);
+    settingsUpdated = true;
+    log_i("Setting default UID");
+  }
+
+  if (strcmp(settings->wifiSsid, "") == 0)
+  {
+    memset(settings->wifiSsid, '\0', sizeof(settings->wifiSsid));
+    strcpy(settings->wifiSsid, WIFI_SSID);
+    settingsUpdated = true;
+    log_i("Setting default WIFI_SSID");
+  }
+
+  if (strcmp(settings->wifiPass, "") == 0)
+  {
+    memset(settings->wifiPass, '\0', sizeof(settings->wifiPass));
+    strcpy(settings->wifiPass, WIFI_PASS);
+    settingsUpdated = true;
+    log_i("Setting default WIFI_PASS");
+  }
+
+  log_i("Stored settings:");
+  log_i("Version: %d", settings->settingsVersion);
+  log_i("UID: %.32s", settings->userId);
+  log_i("WIFI_SSID: %.32s", settings->wifiSsid);
+  log_i("WIFI_PASS: %.32s", settings->wifiPass);
+
+  if (settingsUpdated)
+  {
+    this->settings_save();
+  }
 }
 
 

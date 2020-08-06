@@ -97,7 +97,7 @@ class _TS_Storage
     void          settings_reset();
     void          settings_load();
     void          settings_save();
-
+    
     //
     // get free space %
     //
@@ -177,6 +177,8 @@ class _TS_Storage
     void peer_rssi_add_sample(TS_Peer *peer, int8_t rssi);
 
     bool filename_older_than(char * filename, int8_t days, TS_DateTime *current);
+
+    void set_default_settings();
 };
 
 extern _TS_Storage TS_Storage;
