@@ -53,46 +53,13 @@ void loop() {
 
   if (TS_HAL.ble_is_init())
   {
-
     // blink once a second
     TS_HAL.led_set(TS_Led::Red, true);
     TS_HAL.sleep(TS_SleepMode::Default, 1);
     TS_HAL.led_set(TS_Led::Red, false);
-    
-    // don't turn off radio if we have connected clients
-    uint16_t connectedCount = OT_ProtocolV2.get_connected_count();
-    uint16_t sleepDuration = TS_HAL.random_get(1000, 3000);
 
-    log_i("Devices connected: %d", connectedCount);
+    OT_ProtocolV2.update();
     
-    if(connectedCount > 0) {
-      TS_HAL.sleep(TS_SleepMode::Task, sleepDuration);
-    } else {
-      // TODO: figure out how to sleep deeper
-      // TS_HAL.sleep(TS_SleepMode::Light, sleepDuration);
-      TS_HAL.sleep(TS_SleepMode::Task, sleepDuration);
-    }
-
-    if(skips >= 5) { // vary the interval between scans here
-      skips = 0;
-      
-      // spend up to 1s scanning, lowest acceptable rssi: -95
-      OT_ProtocolV2.scan_and_connect(1, -95);
-    }
-    else
-    {
-      ++skips;
-    }
-
-    // enable advertising
-    OT_ProtocolV2.advertising_start();
-    
-    // just advertise for 1s
-    TS_HAL.sleep(TS_SleepMode::Task, 1000);
-    
-    // disable advertising, get back to sleep
-    OT_ProtocolV2.advertising_stop();
-
   }
 
   // Give some time for comms after broadcasts

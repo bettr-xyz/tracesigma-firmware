@@ -61,6 +61,9 @@ class _OT_ProtocolV2
 
     void begin();
 
+    // Blocking update, call at least once a second
+    void update();
+
     //////////
     // UUIDs
     BLEUUID& getServiceUUID();
@@ -141,6 +144,8 @@ class _OT_ProtocolV2
     std::string       characteristicCache;
     OT_TempID         charCacheTempId;
     SemaphoreHandle_t characteristicCacheMutex;
+
+    int               lastScanTs;
 };
 
 extern _OT_ProtocolV2 OT_ProtocolV2;
