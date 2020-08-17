@@ -18,7 +18,7 @@ class _TS_POWER
     void update();
     void toggle_fsm();
 
-    TS_PowerState get_state();
+    TS_PowerState get_state(); // May be accessed by multiple tasks
 
 
   private:

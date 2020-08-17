@@ -2,16 +2,34 @@
 #include "hal.h"
 #include "storage.h"
 #include "opentracev2.h"
+#include "power.h"
 
 // For Base64 encode
-extern "C" {
-#include "crypto/base64.h"
+extern "C"
+{
+  #include "crypto/base64.h"
 }
 
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <ArduinoJson.h>
+
+//
+// Defines
+//
+
+#define DEBUG_TIMINGS
+
+#ifdef DEBUG_TIMINGS
+  #define SCAN_INTERVAL_SECS 10
+#else
+  #define SCAN_INTERVAL_SECS 57
+#endif
+
+#define SLEEP_MIN 1900
+#define SLEEP_MAX 2300
+#define ADVERTISE_DURATION  1000
 
 //
 // Init
@@ -27,15 +45,17 @@ void _OT_ProtocolV2::begin()
   this->characteristicUUID = BLEUUID(OT_CHARACTERISTICID);
 
   log_i("Loading TempIDs from storage");
-  if( TS_Storage.file_ids_readall(OT_TEMPID_MAX, tempIds) < OT_TEMPID_MAX )
+  if( TS_Storage.file_ids_readall(OT_TEMPID_MAX, tempIds) < OT_TEMPID_MAX)
   {
     log_w("Insufficient/error loading, creating TempIDs");
   }
+  
   log_i("Loaded TempIDs");
 
   // DEBUG: populate characteristic cache once
   this->update_characteristic_cache();
 
+  this->lastScanTs = 0;
 
   // Setup BLE and GATT profile
   BLEDevice::setMTU(OT_CR_MAXLEN);  // try to send whole message in 1 frame
@@ -54,6 +74,54 @@ void _OT_ProtocolV2::begin()
   this->bleAdvertising->setMinPreferred(0x06);  // functions that help with iPhone connections issue
   // TODO: find out what setMin and setMax interval really means
 
+}
+
+void _OT_ProtocolV2::update()
+{
+  // don't turn off radio if we have connected clients
+  uint16_t connectedCount = OT_ProtocolV2.get_connected_count();
+  uint16_t sleepDuration = TS_HAL.random_get(1000, 3000);
+
+  log_i("Devices connected: %d", connectedCount);
+    
+  if(connectedCount > 0)
+  {
+    TS_HAL.sleep(TS_SleepMode::Task, sleepDuration);
+  }
+  else
+  {
+    if(TS_POWER.get_state() == TS_PowerState::HIGH_POWER)
+    {
+      TS_HAL.sleep(TS_SleepMode::Task, sleepDuration);
+    }
+    else
+    {
+      // Power-saving sleep in low-power mode + no connected clients
+      TS_HAL.sleep(TS_SleepMode::Light, sleepDuration);
+    }
+  }
+
+  TS_DateTime datetime;
+  TS_HAL.rtc_get(datetime);
+  int secs = time_to_secs(&datetime);
+  int secs_diff = time_diff(secs, lastScanTs, 86400);
+  
+  if(secs_diff >= SCAN_INTERVAL_SECS)
+  {
+    // spend up to 1s scanning, lowest acceptable rssi: -95
+    OT_ProtocolV2.scan_and_connect(1, -95);
+
+    lastScanTs = secs;
+  }
+
+  // enable advertising
+  OT_ProtocolV2.advertising_start();
+    
+  // just advertise for 1s
+  TS_HAL.sleep(TS_SleepMode::Task, ADVERTISE_DURATION);
+    
+  // disable advertising, get back to sleep
+  OT_ProtocolV2.advertising_stop();
 }
 
 BLEUUID& _OT_ProtocolV2::getServiceUUID()
