@@ -75,6 +75,7 @@ void _TS_HAL::begin()
 
   // disable power to microphone
   power_set_mic(false);
+  this->set_exchange_count(0);
 }
 
 void _TS_HAL::update()
@@ -570,4 +571,20 @@ void _TS_HAL::fail_reboot(const char *msg)
   log_e("%s", msg);
   delay(3000);
   reset();
+}
+
+
+uint8_t _TS_HAL::get_exchange_count()
+{
+    return this->exchangeCount;
+}
+
+void _TS_HAL::set_exchange_count(uint8_t count)
+{
+    this->exchangeCount = count;
+}
+
+void _TS_HAL::inc_exchange_count()
+{
+    this->set_exchange_count(this->get_exchange_count() + 1);
 }
