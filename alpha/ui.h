@@ -52,10 +52,12 @@ class _TS_UI
       BUTTON_P
     };
 
+    FunctionFsm fsm;
+
     TS_UIState current_state;
 
-  	FunctionState state_splash;
-  	FunctionState state_datetime;
+    FunctionState state_splash;
+    FunctionState state_datetime;
     FunctionState state_settings;
     FunctionState state_settings_network;
     FunctionState state_settings_brightness;
@@ -80,8 +82,6 @@ class _TS_UI
     void state_statistics_info_on();
     void state_sleep_on_enter();
     void state_sleep_on_exit();
-
-	  FunctionFsm fsm;
 
     void clear_ui();
     void draw_gear_icon();
