@@ -51,9 +51,7 @@ class _TS_UI
       BUTTON_B,
       BUTTON_P
     };
-
-    FunctionFsm fsm;
-
+    
     TS_UIState current_state;
 
     FunctionState state_splash;
@@ -66,6 +64,8 @@ class _TS_UI
     FunctionState state_statistics;
     FunctionState state_statistics_info;
     FunctionState state_sleep;
+
+    FunctionFsm fsm;
 
     //fsm state functions
     void state_splash_on_enter();
