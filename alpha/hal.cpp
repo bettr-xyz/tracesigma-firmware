@@ -197,6 +197,24 @@ void _TS_HAL::lcd_printf(const char* t, int a, int b, int c)
   EXIT_CRITICAL;
 }
 
+void _TS_HAL::lcd_clear()
+{
+  ENTER_CRITICAL;
+#ifdef HAL_M5STICK_C
+  M5.Lcd.fillScreen(BLACK);
+#endif
+  EXIT_CRITICAL;
+}
+
+void _TS_HAL::lcd_setTextSize(uint8_t fontSize)
+{
+  ENTER_CRITICAL;
+#ifdef HAL_M5STICK_C
+  M5.Lcd.setTextSize(fontSize);
+#endif
+  EXIT_CRITICAL;
+}
+
 void _TS_HAL::lcd_qrcode(const char *string, uint16_t x, uint16_t y, uint8_t width, uint8_t version)
 {
   ENTER_CRITICAL;
