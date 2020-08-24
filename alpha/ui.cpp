@@ -3,6 +3,7 @@
 #include "power.h"
 #include "radio.h"
 #include "icons.h"
+#include "storage.h"
 
 // Increase as UI thread uses more things
 #define THREAD_STACK_SIZE 5000
@@ -372,9 +373,9 @@ void _TS_UI::state_statistics_info_on()
   TS_HAL.lcd_setTextSize(FONTSIZE_1);
   TS_HAL.lcd_cursor(0, 10);
   TS_HAL.lcd_printf("Statistics > Info\n");
-  TS_HAL.lcd_printf(" Storage    : %d%%  \n", 31);
-  TS_HAL.lcd_printf(" Exchanges  : %d   \n", 42);
-  TS_HAL.lcd_printf(" Crashes    : %d   \n", 50);
+  TS_HAL.lcd_printf(" Used Storage : %d%%  \n", TS_Storage.usedspace_get_pct());
+  TS_HAL.lcd_printf(" Exchanges    : %d   \n", 42);
+  TS_HAL.lcd_printf(" Crashes      : %d   \n", TS_PersistMem.crashCount);
 }
 
 void _TS_UI::state_sleep_on_enter()
