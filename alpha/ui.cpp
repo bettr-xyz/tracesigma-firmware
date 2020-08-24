@@ -335,7 +335,7 @@ void _TS_UI::state_settings_brightness_active_on()
 {
   if (clickB)
   {
-    TS_HAL.lcd_cursor(0, 20 + LINE_HEIGHT * FONTSIZE_1);
+    TS_HAL.lcd_cursor(0, 10 + LINE_HEIGHT * FONTSIZE_1);
     char printedString[21] = " Brightness ----- ";  
     brightness %= 100;   
     brightness += 20;
