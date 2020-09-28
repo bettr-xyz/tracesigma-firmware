@@ -8,8 +8,8 @@
 
 #include "hal.h"
 #include "tests.h"
-#include <SPIFFS.h>
 #include <list>
+#include "FFat.h"
 
 //
 // Classes
@@ -189,6 +189,8 @@ extern _TS_Storage TS_Storage;
 // Tests
 //
 
+// TODO: move this to standalone file
+
 #if defined(TESTDRIVER) && defined(TESTDRIVER_STORAGE)
 static class _TS_StorageTests : public _TS_Tests
 {  
@@ -222,6 +224,9 @@ public:
   void setup() override {}
 
   void teardown() override {}
+
+  // basic ffat tests (in cpp)
+  bool test_ffat();
 
   // test writing a log
   bool test_peer_log()

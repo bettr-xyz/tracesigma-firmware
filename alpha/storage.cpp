@@ -1,7 +1,9 @@
 #include "storage.h"
 #include "hal.h"
 #include "cleanbox.h"
+#include "FS.h"
 #include <EEPROM.h>
+#include "storage_ffat.h"
 
 #define EEPROM_SIZE       1024
 #define SETTINGS_VERSION  0x02
@@ -21,8 +23,6 @@
 
 #define SECS_PER_DAY      86400
 #define SECS_PER_MIN      60
-
-#define FILESOPEN_MAX     3
 
 #ifndef DEFAULT_UID
   #define DEFAULT_UID "0123456789"
@@ -148,20 +148,25 @@ void _TS_Storage::begin()
   {
     this->settings_reset();
   }
-  
-  // format on error, basepath, maxOpenFiles
-  // - use the shortest path, f - spi flash
-  if(!SPIFFS.begin(true, "/f", FILESOPEN_MAX))
-  {
-    log_e("SPIFFS init error");
 
-    // no point continuing
-    return;
-  }
+  // Initialize FFat
+  // format on error
+  if(!FFat.begin())
+  {
+    log_e("FFat Mount Failed, attempting format and remount... ");
+
+    FFat.format();
+
+    if(!FFat.begin())
+    {
+      log_e("FFat ReMount Failed.");
+      return;
+    }
+  }    
 
   // dump all files
   {
-    log_i("Listing all files");
+    /*log_i("Listing all files");
     File root = SPIFFS.open("/");
     File file = root.openNextFile();
     while(file)
@@ -171,7 +176,8 @@ void _TS_Storage::begin()
       file = root.openNextFile();
     }
     
-    root.close();
+    root.close();*/
+    StorageFFat::listDir("/", 4);
   }
 
   this->set_default_settings();
@@ -229,21 +235,22 @@ uint8_t _TS_Storage::freespace_get_pct()
 
 uint8_t _TS_Storage::usedspace_get_pct()
 {
-  uint32_t total = SPIFFS.totalBytes();
-  uint32_t used = SPIFFS.usedBytes();
-  uint32_t pct = (used*100)/total;  // 0-100 range
+  uint32_t totalBytes = StorageFFat::totalBytes();
+  uint32_t freeBytes = StorageFFat::freeBytes();
+  uint32_t pct = ((totalBytes - freeBytes) * 100) / totalBytes;  // 0-100 range
   return (uint8_t)pct;
 }
 
 uint32_t _TS_Storage::freespace_get()
 {
-  uint32_t total = SPIFFS.totalBytes();
-  return total - SPIFFS.usedBytes();
+  uint32_t total = StorageFFat::freeBytes();
 }
 
 uint32_t _TS_Storage::usedspace_get()
 {
-  return SPIFFS.usedBytes();
+  uint32_t totalBytes = StorageFFat::totalBytes();
+  uint32_t freeBytes = StorageFFat::freeBytes();
+  return totalBytes - freeBytes;
 }
 
 //
@@ -255,10 +262,10 @@ uint8_t _TS_Storage::file_ids_readall(uint8_t maxCount, std::string *ids)
   // TODO: an optimization is to read only a lookup table, not all the contents
   
   uint8_t count = 0;
-  File f = SPIFFS.open("/ids", "r+");
+  File f = StorageFFat::openRead("/ids");
   if(!f)
   {
-    log_e("Failed to open ids for r+");
+    log_e("Failed to open ids for read");
     return 0;
   }
   
@@ -278,7 +285,7 @@ uint8_t _TS_Storage::file_ids_writeall(uint8_t maxCount, std::string *ids)
 {
   // TODO: test free space and run cleanup
   
-  File f = SPIFFS.open("/ids", "w+");
+  File f = StorageFFat::openWrite("/ids");
   if(!f)
   {
     log_e("Failed to open file /ids for w+");
@@ -375,7 +382,7 @@ TS_PeerIterator* _TS_Storage::peer_get_next(TS_PeerIterator* it)
 
     // List all files of /p/[mmdd]
     // Ignore files of /p/[mmdd]/*
-    File root = SPIFFS.open("/p");
+    File root = StorageFFat::openDir("/p");
     if(root)
     {
       // log_i("DEBUG: root: %s", root.name());
@@ -420,7 +427,7 @@ TS_PeerIterator* _TS_Storage::peer_get_next(TS_PeerIterator* it)
     it->dayFileName = it->dayFileNames.front();
     it->dayFileNames.pop_front();
   
-    it->fileId = SPIFFS.open(it->dayFileName.c_str(), "r");
+    it->fileId = StorageFFat::openRead(it->dayFileName.c_str());
     if(!it->fileId)
     {
       log_e("Failed to open file %s for r", it->dayFileName.c_str());
@@ -471,10 +478,10 @@ TS_PeerIterator* _TS_Storage::peer_get_next_peer(TS_PeerIterator* it)
 
     log_i("DEBUG: filename: %s", filename);
     
-    it->fileIncident = SPIFFS.open(filename, "r");
+    it->fileIncident = StorageFFat::openRead(filename);
     if(!it->fileIncident)
     {
-      log_e("Failed to open file %s for a+", filename);
+      log_e("Failed to open file %s for r", filename);
       return it;
     }
 
@@ -525,7 +532,7 @@ int _TS_Storage::peer_prune(uint8_t days, TS_DateTime *current)
   int removed = 0;
 
   // List all files of /p/[mmdd]
-  File root = SPIFFS.open("/p");
+  File root = StorageFFat::openDir("/p");
   if(root)
   {
     log_i("DEBUG: root: %s", root.name());
@@ -541,7 +548,7 @@ int _TS_Storage::peer_prune(uint8_t days, TS_DateTime *current)
 
       if(filename_older_than(filename, days, current))
       {
-        SPIFFS.remove(filename);
+        StorageFFat::deleteFile(filename);
         ++removed;
       }
       
@@ -701,7 +708,7 @@ uint16_t _TS_Storage::peer_id_get_or_add(const std::string &tempId, TS_Peer *pee
   String dummy;
 
   // Open file for read
-  File f = SPIFFS.open(filename, "a+");
+  File f = StorageFFat::openAppend(filename);
   if(!f)
   {
     log_e("Failed to open file %s for a+", filename);
@@ -745,7 +752,7 @@ void _TS_Storage::peer_incident_add(TS_Peer *peer)
   sprintf(filename, "/p/%02d%02d/%d", peer->firstSeen.month, peer->firstSeen.day, peer->id);
 
   // Open file for append
-  File f = SPIFFS.open(filename, "a+");
+  File f = StorageFFat::openAppend(filename);
   if(!f)
   {
     log_e("Failed to open file %s for a+", filename);
@@ -845,6 +852,15 @@ void _TS_Storage::set_default_settings()
   {
     this->settings_save();
   }
+}
+
+//
+// Testing functions
+//
+
+bool _TS_StorageTests::test_ffat()
+{
+  return StorageFFat::testFileIO("/test.txt");
 }
 
 
