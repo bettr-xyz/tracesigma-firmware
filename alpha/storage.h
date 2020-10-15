@@ -176,7 +176,7 @@ class _TS_Storage
     
     void peer_rssi_add_sample(TS_Peer *peer, int8_t rssi);
 
-    bool filename_older_than(char * filename, int8_t days, TS_DateTime *current);
+    bool filename_older_than(const char * filename, int8_t days, TS_DateTime *current);
 
     void set_default_settings();
 };
@@ -192,6 +192,7 @@ extern _TS_Storage TS_Storage;
 // TODO: move this to standalone file
 
 #if defined(TESTDRIVER) && defined(TESTDRIVER_STORAGE)
+
 static class _TS_StorageTests : public _TS_Tests
 {  
 public:
@@ -405,12 +406,12 @@ public:
     
     TS_Storage.reset();
     
-    if(pruned == 2)
+    if(pruned == 1)
     {
       return true;
     }
 
-    log_e("Prune should have removed 2 files, %d files removed instead", pruned);
+    log_e("Prune should have removed 1 file, %d files removed instead", pruned);
     return false;
   }
 

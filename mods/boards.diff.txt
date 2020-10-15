@@ -1,3 +1,7 @@
 
 
 m5stick-c.build.f_cpu=80000000L
+
+m5stick-c.menu.PartitionScheme.tracesigma=TraceSigma
+m5stick-c.menu.PartitionScheme.tracesigma.build.partitions=tracesigma
+m5stick-c.menu.PartitionScheme.tracesigma.upload.maximum_size=2097152

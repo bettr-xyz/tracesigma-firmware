@@ -83,6 +83,7 @@ public:
   {
     for(uint8_t i = 0; i < TEST_REPEAT_ITERATIONS; ++i)
     {
+      log_i("=======================", i+1);
       log_i("Test iteration %d ...", i+1);
       this->run_all();
       delay(TEST_REPEAT_INTERVAL);
