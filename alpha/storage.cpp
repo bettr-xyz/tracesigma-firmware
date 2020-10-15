@@ -1,7 +1,9 @@
 #include "storage.h"
 #include "hal.h"
 #include "cleanbox.h"
+#include "FS.h"
 #include <EEPROM.h>
+#include "storage_ffat.h"
 
 #define EEPROM_SIZE       1024
 #define SETTINGS_VERSION  0x02
@@ -22,8 +24,6 @@
 #define SECS_PER_DAY      86400
 #define SECS_PER_MIN      60
 
-#define FILESOPEN_MAX     3
-
 #ifndef DEFAULT_UID
   #define DEFAULT_UID "0123456789"
 #endif
@@ -34,7 +34,12 @@
   #define WIFI_PASS "password"    // Enter your WiFi password here
 #endif
 
-
+const char *rootDir = "/";
+const char *tempIdsFile = "/ids";
+const char *appPeersDir = "/p";
+const char *dailyPeersDir = "/p/%02d%02d";
+const char *dailyPeersIdFile = "/p/%02d%02d/id";
+const char *peerEncounterLogFile = "/p/%02d%02d/%d";
 
 
 
@@ -148,30 +153,35 @@ void _TS_Storage::begin()
   {
     this->settings_reset();
   }
-  
-  // format on error, basepath, maxOpenFiles
-  // - use the shortest path, f - spi flash
-  if(!SPIFFS.begin(true, "/f", FILESOPEN_MAX))
-  {
-    log_e("SPIFFS init error");
 
-    // no point continuing
+  // Initialize FFat
+  if(!StorageFFat::begin())
+  {
+    log_e("FFat Begin Failed.");
     return;
+  }
+
+  // Create folder structure if it does not exist
+  // /p
+  {
+    File dir = StorageFFat::openDir(appPeersDir);
+    if(dir)
+    {
+      dir.close();
+    }
+    else
+    {
+      if(!StorageFFat::createDir(appPeersDir))
+      {
+        log_e("Error creating folder structure");
+        return;
+      }
+    }
   }
 
   // dump all files
   {
-    log_i("Listing all files");
-    File root = SPIFFS.open("/");
-    File file = root.openNextFile();
-    while(file)
-    {
-      log_i("FILE: %s", file.name());
-      file.close();
-      file = root.openNextFile();
-    }
-    
-    root.close();
+    StorageFFat::listDir(rootDir, 4);
   }
 
   this->set_default_settings();
@@ -229,21 +239,22 @@ uint8_t _TS_Storage::freespace_get_pct()
 
 uint8_t _TS_Storage::usedspace_get_pct()
 {
-  uint32_t total = SPIFFS.totalBytes();
-  uint32_t used = SPIFFS.usedBytes();
-  uint32_t pct = (used*100)/total;  // 0-100 range
+  uint32_t totalBytes = StorageFFat::totalBytes();
+  uint32_t freeBytes = StorageFFat::freeBytes();
+  uint32_t pct = ((totalBytes - freeBytes) * 100) / totalBytes;  // 0-100 range
   return (uint8_t)pct;
 }
 
 uint32_t _TS_Storage::freespace_get()
 {
-  uint32_t total = SPIFFS.totalBytes();
-  return total - SPIFFS.usedBytes();
+  uint32_t total = StorageFFat::freeBytes();
 }
 
 uint32_t _TS_Storage::usedspace_get()
 {
-  return SPIFFS.usedBytes();
+  uint32_t totalBytes = StorageFFat::totalBytes();
+  uint32_t freeBytes = StorageFFat::freeBytes();
+  return totalBytes - freeBytes;
 }
 
 //
@@ -255,10 +266,10 @@ uint8_t _TS_Storage::file_ids_readall(uint8_t maxCount, std::string *ids)
   // TODO: an optimization is to read only a lookup table, not all the contents
   
   uint8_t count = 0;
-  File f = SPIFFS.open("/ids", "r+");
+  File f = StorageFFat::openRead(tempIdsFile);
   if(!f)
   {
-    log_e("Failed to open ids for r+");
+    log_e("Failed to open ids for read");
     return 0;
   }
   
@@ -278,7 +289,7 @@ uint8_t _TS_Storage::file_ids_writeall(uint8_t maxCount, std::string *ids)
 {
   // TODO: test free space and run cleanup
   
-  File f = SPIFFS.open("/ids", "w+");
+  File f = StorageFFat::openWrite(tempIdsFile);
   if(!f)
   {
     log_e("Failed to open file /ids for w+");
@@ -366,6 +377,8 @@ bool _TS_Storage::peer_log_incident(std::string id, std::string org, std::string
 
 TS_PeerIterator* _TS_Storage::peer_get_next(TS_PeerIterator* it)
 {
+  // log_i("DEBUG: Enter peer_get_next");
+  
   if(it == NULL)
   {
     // log_i("DEBUG: new iterator");
@@ -373,9 +386,8 @@ TS_PeerIterator* _TS_Storage::peer_get_next(TS_PeerIterator* it)
     // Initialize new iterator
     it = new TS_PeerIterator();
 
-    // List all files of /p/[mmdd]
-    // Ignore files of /p/[mmdd]/*
-    File root = SPIFFS.open("/p");
+    // List all files of /p/[mmdd] only
+    File root = StorageFFat::openDir(appPeersDir);
     if(root)
     {
       // log_i("DEBUG: root: %s", root.name());
@@ -383,15 +395,26 @@ TS_PeerIterator* _TS_Storage::peer_get_next(TS_PeerIterator* it)
       File file = root.openNextFile();
       while(file)
       {
-        // log_i("DEBUG: filename %s", file.name());
+        // save a copy of string to allow early closure
+        auto filename = std::string(file.name());
+        file.close();
         
-        if(strlen(file.name()) == 7)
+        // log_i("DEBUG: filename %s", filename.c_str());
+
+        // TODO if it is a dir in the form /p/mmdd/, assume that peers file exist 
+        // and open dailyPeersIdFile (/p/mmdd/id)
+        if(filename.length() == 7)
         {
-          // a peer file
-          it->dayFileNames.push_back(std::string(file.name()));
+          // a peer file : /p/mmdd/id
+          it->dayFileNames.push_back(filename);
+        }
+        else
+        {
+          // invalid folder detected, delete
+          log_w("invalid folder detected, deleting %s", filename.c_str());
+          StorageFFat::removeDirForce(filename.c_str());
         }
         
-        file.close();
         file = root.openNextFile();
       }
       
@@ -416,14 +439,16 @@ TS_PeerIterator* _TS_Storage::peer_get_next(TS_PeerIterator* it)
 
   if(it->dayFileNames.size() > 0)
   {
-    // Get next dayfile
+    // Get next day peers id file
     it->dayFileName = it->dayFileNames.front();
     it->dayFileNames.pop_front();
+
+    std::string dayPeersIdFile = it->dayFileName + "/id";
   
-    it->fileId = SPIFFS.open(it->dayFileName.c_str(), "r");
+    it->fileId = StorageFFat::openRead(dayPeersIdFile.c_str());
     if(!it->fileId)
     {
-      log_e("Failed to open file %s for r", it->dayFileName.c_str());
+      log_e("Failed to open file %s for r", dayPeersIdFile.c_str());
       delete it;
       return NULL;
     }
@@ -455,26 +480,28 @@ TS_PeerIterator* _TS_Storage::peer_get_next_peer(TS_PeerIterator* it)
   // log_i("DEBUG: peer_get_next_peer");
   
   // Get the next entry in file
-  // File is /p/[mmdd]
+  // File is /p/[mmdd]/id
   // - tempid,id,org,deviceType\n
   if(it->fileId.available())
   {
-    log_i("DEBUG: fileid available: %d", it->fileId.available());
+    // log_i("DEBUG: fileid available: %d", it->fileId.available());
     
     it->peerId = std::string( it->fileId.readStringUntil(',').c_str() );
     it->peer.id = atoi( it->fileId.readStringUntil(',').c_str() );
     it->peer.org = std::string( it->fileId.readStringUntil(',').c_str() );
     it->peer.deviceType = std::string( it->fileId.readStringUntil('\n').c_str() );
 
+    // Get the encounter logfile for a specific peer
+    // /p/[mmdd]/[id]
     char filename[14];
     sprintf(filename, "%s/%d", it->dayFileName.c_str(), it->peer.id);
 
     log_i("DEBUG: filename: %s", filename);
     
-    it->fileIncident = SPIFFS.open(filename, "r");
+    it->fileIncident = StorageFFat::openRead(filename);
     if(!it->fileIncident)
     {
-      log_e("Failed to open file %s for a+", filename);
+      log_e("Failed to open file %s for r", filename);
       return it;
     }
 
@@ -521,28 +548,46 @@ TS_PeerIterator* _TS_Storage::peer_get_next_incident(TS_PeerIterator* it)
 int _TS_Storage::peer_prune(uint8_t days, TS_DateTime *current)
 {
   // prune files which are older than [days]
-  char filename[40];
   int removed = 0;
 
   // List all files of /p/[mmdd]
-  File root = SPIFFS.open("/p");
+  File root = StorageFFat::openDir(appPeersDir);
   if(root)
   {
-    log_i("DEBUG: root: %s", root.name());
+    // log_i("DEBUG: root: %s", root.name());
     
     File file = root.openNextFile();
     while(file)
     {
-      log_i("DEBUG: file: %s", file.name());
+      // save a copy of string to allow early closure
+      auto filename = std::string(file.name());
       
-      // filenames expected to be <= 32 char     
-      strncpy(filename, file.name(), sizeof(filename));
-      file.close();
-
-      if(filename_older_than(filename, days, current))
+      if(!file.isDirectory())
       {
-        SPIFFS.remove(filename);
-        ++removed;
+        log_d("DEBUG: skipping non dir: %s", filename.c_str());
+        file.close();
+      }
+      else if(filename.length() == 7) // legit dir check
+      {
+        file.close();
+        log_d("DEBUG: dir: %s", filename.c_str());
+        
+        if(filename_older_than(filename.c_str(), days, current))
+        {
+          log_i("Pruning folder %s", filename.c_str());
+          if(StorageFFat::removeDirForce(filename.c_str()))
+          {
+            log_w("Pruned folder %s", filename.c_str());
+            ++removed;
+          }
+        }
+      }
+      else
+      {
+        file.close();
+        // invalid folder detected, delete
+        log_w("invalid folder detected, deleting %s", filename.c_str());
+        StorageFFat::removeDirForce(filename.c_str());
       }
       
       file = root.openNextFile();
@@ -691,48 +736,67 @@ int _TS_Storage::peer_cache_commit_all(TS_DateTime *current)
 uint16_t _TS_Storage::peer_id_get_or_add(const std::string &tempId, TS_Peer *peer)
 {
   // TODO: should we wipe file if corrupted?
+  log_d("ENTER peer_id_get_or_add");
   
-  // File is /p/[mmdd]
+  // File is /p/[mmdd]/id
   // - tempid,id,org,deviceType\n
   
   char filename[10];
-  sprintf(filename, "/p/%02d%02d", peer->firstSeen.month, peer->firstSeen.day);
+  sprintf(filename, dailyPeersIdFile, peer->firstSeen.month, peer->firstSeen.day);
   uint16_t id = 0;
   String dummy;
 
-  // Open file for read
-  File f = SPIFFS.open(filename, "a+");
-  if(!f)
+  // Open file for read, file may not exist
   {
-    log_e("Failed to open file %s for a+", filename);
-    return 0;
-  }
-
-  // file exist, look for tempid
-  while(f.available())
-  {
-    String fTid = f.readStringUntil(',');
-    String fId = f.readStringUntil(',');
-    dummy = f.readStringUntil(',');
-    dummy = f.readStringUntil('\n');
-
-    // take note of last id
-    id = atoi(fId.c_str());
-
-    if(tempId.compare(fTid.c_str()) == 0)
+    log_d("Opening file for read");
+    File f = StorageFFat::openRead(filename);
+    if(f)
     {
-      // found
-      f.close();
-      return id;
+      // file exist, look for tempid
+      log_d("Looking for tempid in file");
+      while(f.available())
+      {
+        log_d("%i bytes available in file", f.available());
+        String fTid = f.readStringUntil(',');
+        String fId = f.readStringUntil(',');
+        dummy = f.readStringUntil(',');
+        dummy = f.readStringUntil('\n');
+    
+        // take note of last id
+        id = atoi(fId.c_str());
+    
+        if(tempId.compare(fTid.c_str()) == 0)
+        {
+          // found
+          f.close();
+          log_d("EXIT peer_id_get_or_add - found id");
+          return id;
+        }
+  
+        f.close();
+      }
     }
   }
 
   // use last id +1
   ++id;
 
+  // create entries folder if it does not exist
+  {
+    char foldername[12];
+    sprintf(foldername, dailyPeersDir, peer->firstSeen.month, peer->firstSeen.day);
+    log_d("Creating folder if it does not exist: %s", foldername);
+    StorageFFat::tryCreateDir(foldername);
+  }
+
+  log_d("Opening file for append");
+  File f = StorageFFat::openAppend(filename);
+
   // append new entry
+  log_d("Appending new entry to file");
   f.printf("%s,%d,%s,%s\n", tempId.c_str(), id, peer->org.c_str(), peer->deviceType.c_str());
   f.close();
+  log_d("EXIT peer_id_get_or_add - used new id");
   return id;
 }
 
@@ -742,10 +806,10 @@ void _TS_Storage::peer_incident_add(TS_Peer *peer)
   // - tempid,id,org,deviceType\n
   
   char filename[14];
-  sprintf(filename, "/p/%02d%02d/%d", peer->firstSeen.month, peer->firstSeen.day, peer->id);
+  sprintf(filename, peerEncounterLogFile, peer->firstSeen.month, peer->firstSeen.day, peer->id);
 
   // Open file for append
-  File f = SPIFFS.open(filename, "a+");
+  File f = StorageFFat::openAppend(filename);
   if(!f)
   {
     log_e("Failed to open file %s for a+", filename);
@@ -777,9 +841,9 @@ void _TS_Storage::peer_rssi_add_sample(TS_Peer *peer, int8_t rssi)
   peer->rssi_dsquared += ds;
 }
 
-bool _TS_Storage::filename_older_than(char * filename, int8_t days, TS_DateTime *current)
+bool _TS_Storage::filename_older_than(const char * filename, int8_t days, TS_DateTime *current)
 {
-  // Expected filename: /p/[mmdd]*
+  // Expected filename: /p/[mmdd]
   char tee[3] = {0};
   int month, day;
   
@@ -847,5 +911,15 @@ void _TS_Storage::set_default_settings()
   }
 }
 
+//
+// Testing functions
+//
+#if defined(TESTDRIVER) && defined(TESTDRIVER_STORAGE)
 
+bool _TS_StorageTests::test_ffat()
+{
+  return StorageFFat::testFileIO("/test.txt");
+}
+
+#endif
 

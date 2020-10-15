@@ -151,106 +151,103 @@ void _TS_RADIO::wifi_update()
       TS_HAL.ble_init();
     }
   }
+}
+
+// internal function
+// - used by _TS_RADIO::download_temp_ids
+void _download_temp_ids(char* userId, WiFiClientSecure *client)
+{
+  client->setCACert(root_ca);
+    
+  log_d("Connecting to %s", host);
+  if (!client->connect(host, HTTPS_PORT)) 
+  { 
+    log_e("Connection to %s failed", host);
+    return;
+  }
+
+  uint8_t body_size = strlen(body_template) + strlen(userId) - 2 + 1; // -2 for format characters
+  char body[body_size];
+  sprintf(body, body_template, userId);
+
+  uint8_t request_size = strlen(post_request_template) + strlen(uri_getTempIDs) + strlen(host) + strlen(body) - 6 + 1; // -6 for format characters
+
+  char postRequest[request_size]; // max request size is 182 with uid of length 31
+  sprintf(postRequest, post_request_template, uri_getTempIDs, host, strlen(body), body);
+
+  client->print(postRequest);
+
+  if (client->println() == 0) {
+    log_e("Failed to send request");
+    return;
+  }
+
+  // Check HTTP status
+  char status[32] = {0};
+  client->readBytesUntil('\r', status, sizeof(status));
+  if (strcmp(status, "HTTP/1.1 200 OK") != 0) {
+    log_e("Unexpected response %s", status);
+    return;
+  }
+
+  // Skip HTTP headers
+  if (!client->find(end_of_headers)) {
+    log_w("Invalid response");
+    return;
+  }
   
+  const size_t capacity = JSON_ARRAY_SIZE(TEMPID_BATCH_SIZE) + JSON_OBJECT_SIZE(1) + (TEMPID_BATCH_SIZE + 1)*JSON_OBJECT_SIZE(3) + 12610;
+
+  DynamicJsonDocument doc(capacity);
+
+  // Parse JSON object
+  DeserializationError error = deserializeJson(doc, *client);
+  if (error) 
+  {
+    log_w("deserializeJson() failed: %s", error.c_str());
+    return;
+  }
+
+  JsonObject result = doc["result"];
+  const char* result_status = result["status"];
+
+  if (strcmp(result_status, "SUCCESS") != 0)
+  {
+    log_w("Error in JSON result status");
+  }
+  else
+  {
+    log_d("***Request status: OK***");
+    
+    JsonArray result_tempIDs = result["tempIDs"];
+
+    OT_TempID tempIds[OT_TEMPID_MAX];
+  
+    log_d("tempID_0 id: %s", result_tempIDs[0]["tempID"].as<const char*>());
+    log_d("tempID_0 start: %ld", result_tempIDs[0]["startTime"]);
+    log_d("tempID_0 expiry: %ld", result_tempIDs[0]["expiryTime"]);
+
+    for (int i = 0; i < OT_TEMPID_MAX; i++)
+    {
+      std::string tempId = result_tempIDs[i]["tempID"];
+      tempIds[i] = tempId;
+    }
+
+    log_d("Saving TempIDs to storage");
+    if(TS_Storage.file_ids_writeall(OT_TEMPID_MAX, tempIds) != OT_TEMPID_MAX)
+    {
+      log_e("Error saving TempIDs");
+    }
+  }
 }
 
 void _TS_RADIO::download_temp_ids(char* userId)
 {
-
   WiFiClientSecure *client = new WiFiClientSecure;
 
-  if (client)
-  {
-    client->setCACert(root_ca);
+  _download_temp_ids(userId, client);
     
-    log_d("Connecting to %s", host);
-    if (!client->connect(host, HTTPS_PORT)) 
-    { 
-      log_e("Connection to %s failed", host);
-      return;
-    }
-
-    uint8_t body_size = strlen(body_template) + strlen(userId) - 2 + 1; // -2 for format characters
-    char body[body_size];
-    sprintf(body, body_template, userId);
-
-    uint8_t request_size = strlen(post_request_template) + strlen(uri_getTempIDs) + strlen(host) + strlen(body) - 6 + 1; // -6 for format characters
-
-    char postRequest[request_size]; // max request size is 182 with uid of length 31
-    sprintf(postRequest, post_request_template, uri_getTempIDs, host, strlen(body), body);
-
-    client->print(postRequest);
-
-    if (client->println() == 0) {
-      log_e("Failed to send request");
-      client->stop();
-      return;
-    }
-
-    // Check HTTP status
-    char status[32] = {0};
-    client->readBytesUntil('\r', status, sizeof(status));
-    if (strcmp(status, "HTTP/1.1 200 OK") != 0) {
-      log_e("Unexpected response %s", status);
-      client->stop();
-      return;
-    }
-
-    // Skip HTTP headers
-    if (!client->find(end_of_headers)) {
-      log_w("Invalid response");
-      client->stop();
-      return;
-    }
-    
-    const size_t capacity = JSON_ARRAY_SIZE(TEMPID_BATCH_SIZE) + JSON_OBJECT_SIZE(1) + (TEMPID_BATCH_SIZE + 1)*JSON_OBJECT_SIZE(3) + 12610;
-
-    DynamicJsonDocument doc(capacity);
-
-    // Parse JSON object
-    DeserializationError error = deserializeJson(doc, *client);
-    if (error) 
-    {
-      log_w("deserializeJson() failed: %s", error.c_str());
-      client->stop();
-      return;
-    }
-  
-    JsonObject result = doc["result"];
-    const char* result_status = result["status"];
-
-    if (strcmp(result_status, "SUCCESS") != 0)
-    {
-      log_w("Error in JSON result status");
-    }
-    else
-    {
-      log_d("***Request status: OK***");
-      
-      JsonArray result_tempIDs = result["tempIDs"];
-
-      OT_TempID tempIds[OT_TEMPID_MAX];
-    
-      log_d("tempID_0 id: %s", result_tempIDs[0]["tempID"].as<const char*>());
-      log_d("tempID_0 start: %ld", result_tempIDs[0]["startTime"]);
-      log_d("tempID_0 expiry: %ld", result_tempIDs[0]["expiryTime"]);
-
-      for (int i = 0; i < OT_TEMPID_MAX; i++)
-      {
-        std::string tempId = result_tempIDs[i]["tempID"];
-        tempIds[i] = tempId;
-      }
-
-      log_d("Saving TempIDs to storage");
-      if(TS_Storage.file_ids_writeall(OT_TEMPID_MAX, tempIds) != OT_TEMPID_MAX)
-      {
-        log_e("Error saving TempIDs");
-      }
-    }
-
-    // Disconnect
-    client->stop();
-    delete client;
-
-  }
+  // Disconnect, cleanup
+  client->stop();
+  delete client;
 }
