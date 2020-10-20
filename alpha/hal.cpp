@@ -21,6 +21,9 @@
 
 #define CONFIG_ESP_CONSOLE_UART_NUM 0
 
+// Default power of 1dBm for ~1-2m range
+#define DEFAULT_BLE_POWER TS_BlePower::P1
+
 #define ENTER_CRITICAL  xSemaphoreTake(halMutex, portMAX_DELAY)
 #define EXIT_CRITICAL   xSemaphoreGive(halMutex)
 static SemaphoreHandle_t halMutex;
@@ -410,6 +413,7 @@ void _TS_HAL::ble_init()
   if (!this->bleInitialized)
   {
     BLEDevice::init(DEVICE_NAME);
+    this->ble_set_power(DEFAULT_BLE_POWER);
   
     pBLEServer = BLEDevice::createServer();
     pBLEAdvertiser = BLEDevice::getAdvertising();
@@ -446,6 +450,42 @@ BLEServer* _TS_HAL::ble_server_get()
 bool _TS_HAL::ble_is_init()
 {
   return this->bleInitialized;
+}
+
+void _TS_HAL::ble_set_power(TS_BlePower dbm)
+{
+  esp_power_level_t p = ESP_PWR_LVL_N14;
+
+  switch(dbm) {
+    case TS_BlePower::N14:
+      p = ESP_PWR_LVL_N14;
+      break;
+    case TS_BlePower::N11:
+      p = ESP_PWR_LVL_N11;
+      break;
+    case TS_BlePower::N8:
+      p = ESP_PWR_LVL_N8;
+      break;
+    case TS_BlePower::N5:
+      p = ESP_PWR_LVL_N5;
+      break;
+    case TS_BlePower::N2:
+      p = ESP_PWR_LVL_N2;
+      break;
+    case TS_BlePower::P1:
+      p = ESP_PWR_LVL_P1;
+      break;
+    case TS_BlePower::P4:
+      p = ESP_PWR_LVL_P4;
+      break;
+    case TS_BlePower::P7:
+      p = ESP_PWR_LVL_P7;
+      break;
+  }
+  
+  BLEDevice::setPower(p, ESP_BLE_PWR_TYPE_DEFAULT);
+  BLEDevice::setPower(p, ESP_BLE_PWR_TYPE_ADV);
+  BLEDevice::setPower(p, ESP_BLE_PWR_TYPE_SCAN);
 }
 
 
