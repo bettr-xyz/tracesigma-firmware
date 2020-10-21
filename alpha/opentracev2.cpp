@@ -175,7 +175,8 @@ bool _OT_ProtocolV2::scan_and_connect(uint8_t seconds, int8_t rssiCutoff)
 
     log_i("%s rssi: %d", deviceAddress.toString().c_str(), rssi);
 
-    // We do not need a map of last-seen as this function should have long intervals between calls
+    // We only want to exchange if it has not been exchanged for more than some mins
+    
     // Connect to each one and read + write iff parameters are correct
     // TODO: see if we can parallelize this process
     this->connect_and_exchange(device, deviceAddress, rssi);

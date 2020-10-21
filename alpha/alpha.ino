@@ -9,6 +9,9 @@
 #include "serial_cmd.h"
 #include "storage.h"
 
+// Include tests
+#include "storage_tests.h"
+
 // Notes:
 // - look at mods/boards.diff.txt -- set CPU to 80mhz instead of 240mhz
 //

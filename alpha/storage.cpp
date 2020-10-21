@@ -911,15 +911,6 @@ void _TS_Storage::set_default_settings()
   }
 }
 
-//
-// Testing functions
-//
-#if defined(TESTDRIVER) && defined(TESTDRIVER_STORAGE)
 
-bool _TS_StorageTests::test_ffat()
-{
-  return StorageFFat::testFileIO("/test.txt");
-}
 
-#endif
 
