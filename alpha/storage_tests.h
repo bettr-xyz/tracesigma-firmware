@@ -13,6 +13,7 @@ public:
   std::string test_id;
   std::string test_org;
   std::string test_device;
+  std::string test_mac;
   TS_DateTime test_time;
   int8_t test_rssi;
 
@@ -24,6 +25,7 @@ public:
     test_id = "abc";
     test_org = "test org";
     test_device = "test device";
+    test_mac = "ab12cd34ef56";
     test_time.day = 6;
     test_time.month = 6;
     test_time.year = 2020;
@@ -44,7 +46,7 @@ public:
   bool test_peer_log()
   { 
     test_peer_log_pass = false;
-    if( !TS_Storage.peer_log_incident( test_id, test_org, test_device, test_rssi, &test_time ) )
+    if( !TS_Storage.peer_log_incident( test_id, test_org, test_device, test_rssi, &test_time, test_mac ) )
     {
       log_e("peer_log_incident expected to return true");
       return false;
@@ -61,7 +63,7 @@ public:
     for(int i = 1; i <= 5; ++i)
     {
       test_time.minute = 10 + i;
-      if( !TS_Storage.peer_log_incident( test_id, test_org, test_device, test_rssi, &test_time ) )
+      if( !TS_Storage.peer_log_incident( test_id, test_org, test_device, test_rssi, &test_time, test_mac ) )
       {
         log_e("peer_log_incident_2 mins+%d expected to return true", i);
         return false;

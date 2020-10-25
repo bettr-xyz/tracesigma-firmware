@@ -34,7 +34,8 @@ struct TS_Peer
   TS_Peer();
   
   uint16_t id;  // may not be used until just about to store
-  
+
+  std::string deviceMac;
   std::string org;
   std::string deviceType;
 
@@ -122,7 +123,7 @@ class _TS_Storage
     // 
 
     // Log incident for OTv2 protocol
-    bool peer_log_incident(std::string id, std::string org, std::string deviceType, int8_t rssi, TS_DateTime *current);
+    bool peer_log_incident(std::string &id, std::string &org, std::string &deviceType, int8_t rssi, TS_DateTime *current, std::string &deviceMac);
 
     // Obtain an iterator to get next day
     // - delete after use
@@ -159,6 +160,9 @@ class _TS_Storage
     // Data is cached here until flushed to file, could be 5 - 18 mins thereabouts
     std::map<std::string, TS_Peer> peerCache;
 
+    // Map of MAC addresses to peer structs
+    std::map<std::string, TS_Peer*> peersMac;
+
     //
     // Peer file functions
     //
@@ -179,6 +183,13 @@ class _TS_Storage
     bool filename_older_than(const char * filename, int8_t days, TS_DateTime *current);
 
     void set_default_settings();
+
+    // tempPeers / peerCache modification functions
+
+    void erase_temppeer_by_tempid(const std::string &tempId);
+    void erase_peercache_by_tempid(const std::string &tempId);
+    void move_temppeer_to_peercache(std::map<std::string, TS_Peer>::iterator &peer);
+    void create_temppeer(const std::string &tempId, const TS_Peer &peer);
 };
 
 extern _TS_Storage TS_Storage;

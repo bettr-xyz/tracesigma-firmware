@@ -192,6 +192,7 @@ void _TS_Storage::reset()
   // Reset data structures
   lastCleanupMins = 0;
   tempPeers.clear();
+  peersMac.clear();
   peerCache.clear();
 }
 
@@ -310,7 +311,7 @@ uint8_t _TS_Storage::file_ids_writeall(uint8_t maxCount, std::string *ids)
 // Peering functions
 // 
 
-bool _TS_Storage::peer_log_incident(std::string id, std::string org, std::string deviceType, int8_t rssi, TS_DateTime *current)
+bool _TS_Storage::peer_log_incident(std::string &id, std::string &org, std::string &deviceType, int8_t rssi, TS_DateTime *current, std::string &deviceMac)
 {
   int currentTimeToSecs = time_to_secs(current);
   
@@ -337,8 +338,7 @@ bool _TS_Storage::peer_log_incident(std::string id, std::string org, std::string
         }
         
         // Move entry to peercache
-        this->peerCache[ peer->first ] = peer->second;
-        this->tempPeers.erase(peer);
+        this->move_temppeer_to_peercache(peer);
       }
       
       return true;
@@ -364,13 +364,14 @@ bool _TS_Storage::peer_log_incident(std::string id, std::string org, std::string
   // create in tempPeers
   {
     TS_Peer peer;
+    peer.deviceMac = deviceMac;
     peer.org = org;
     peer.deviceType = deviceType;
     peer.firstSeen = *current;
 
     peer_rssi_add_sample(&peer, rssi);
-    
-    this->tempPeers[ id ] = peer;
+
+    this->create_temppeer(id, peer);
     return true;
   }
 }
@@ -627,7 +628,7 @@ uint16_t _TS_Storage::peer_cleanup(TS_DateTime *current)
       int peerIdleDiff = peerTimeDiff + (peer->second.mins * 60);
       if(peerTimeDiff > TEMPPEERS_MAXAGE || peerIdleDiff > PEER_MAXIDLE)
       {
-        this->tempPeers.erase(peer++);
+        this->erase_temppeer_by_tempid((peer++)->first);
         continue;
       }
       
@@ -645,7 +646,8 @@ uint16_t _TS_Storage::peer_cleanup(TS_DateTime *current)
       auto keysPtr = oldest.getKeys();
       for(auto key = keysPtr->begin(); key != keysPtr->end(); ++key)
       {
-        this->tempPeers.erase(*key);
+        // erase peer from tempPeers
+        this->erase_temppeer_by_tempid(*key);
       }
     }
 
@@ -710,7 +712,7 @@ void _TS_Storage::peer_cache_commit(const std::string &key, TS_Peer *peer, TS_Da
   this->peer_incident_add(peer);
 
   // erase from peercache
-  this->peerCache.erase(key);
+  this->erase_peercache_by_tempid(key);
 }
 
 
@@ -911,6 +913,77 @@ void _TS_Storage::set_default_settings()
   }
 }
 
+// Erases from tempPeers by tempid
+// - also erases potential association in peersMac
+void _TS_Storage::erase_temppeer_by_tempid(const std::string &tempId)
+{
+  auto peer = this->tempPeers.find(tempId);
+  if (peer == this->tempPeers.end())
+  {
+    log_e("Unexpected unable to find tempId %s", tempId.c_str());
+    return;
+  }
+
+  // erase peer from peersMac
+  auto deviceMac = peer->second.deviceMac;
+  if(!deviceMac.empty())
+  {
+    this->peersMac.erase(deviceMac);
+  }
+
+  // erase peer from tempPeers
+  this->tempPeers.erase(peer);
+}
+
+void _TS_Storage::erase_peercache_by_tempid(const std::string &tempId)
+{
+  auto peer = this->peerCache.find(tempId);
+  if (peer == this->peerCache.end())
+  {
+    log_e("ASSERT: unable to find tempId %s", tempId.c_str());
+    return;
+  }
+
+  // erase peer from peersMac
+  auto deviceMac = peer->second.deviceMac;
+  if(!deviceMac.empty())
+  {
+    this->peersMac.erase(deviceMac);
+  }
+
+  // erase peer from tempPeers
+  this->peerCache.erase(peer);
+}
+
+// Moves peer from tempPeer to peerCache
+// - no need to erase potential association in peersMac
+void _TS_Storage::move_temppeer_to_peercache(std::map<std::string, TS_Peer>::iterator &peer)
+{
+  this->peerCache[ peer->first ] = peer->second;
+  this->tempPeers.erase(peer);
+
+  // update pointer of peersMac
+  // - point to struct in peerCache instead of tempPeers
+  // TODO: optimization we should just store pointer of TS_Peer struct
+  auto p = peer->second;
+  if(!p.deviceMac.empty()) 
+  {
+    this->peersMac[peer->second.deviceMac] = &(this->peerCache[peer->first]);
+  }
+}
+
+// Create entry in tempPeer
+// - also creates association in peersMac
+void _TS_Storage::create_temppeer(const std::string &tempId, const TS_Peer &peer)
+{
+  log_i("TempPeer created with tempId: %s", tempId.c_str());
+  this->tempPeers[tempId] = peer;
+
+  if(!peer.deviceMac.empty()) 
+  {
+    this->peersMac[peer.deviceMac] = &(this->tempPeers[tempId]);
+  }
+}
 
 
 
