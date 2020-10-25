@@ -16,7 +16,7 @@
 // Max mem is 327680B
 #define FREEMEM_PCT FREEMEM / 3276
 
-#define LOWMEM 20480
+#define LOWMEM 5120
 
 #define LOWMEM_COND (FREEMEM < LOWMEM)
 
