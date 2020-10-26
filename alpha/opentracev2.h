@@ -16,6 +16,8 @@
 #include <BLEUtils.h>
 #include <BLEDevice.h>
 
+#include "storage.h"
+
 #define OT_ORG          "SG_MOH"
 #define OT_PROTOVER     2
 
@@ -99,6 +101,8 @@ class _OT_ProtocolV2
 
     void update_characteristic_cache();
 
+private:
+
     //////////
     // BLE callbacks
     void onConnect(BLEServer* pServer) override;
@@ -124,6 +128,11 @@ class _OT_ProtocolV2
     // Process frame into ConnectionRecord
     bool process_central_read_request(std::string& payload,
                                       OT_ConnectionRecord& connectionRecord);
+
+    ////////
+    // Helpers
+
+    void get_mac_from_ble_address(BLEAddress &fromBleAddress, TS_MacAddress &toMacAddress);
 
   private:
     // Store OT_TEMPID_MAX TempIDs for rotation

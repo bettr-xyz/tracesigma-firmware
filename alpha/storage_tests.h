@@ -13,7 +13,7 @@ public:
   std::string test_id;
   std::string test_org;
   std::string test_device;
-  std::string test_mac;
+  TS_MacAddress test_mac;
   TS_DateTime test_time;
   int8_t test_rssi;
 
@@ -25,7 +25,7 @@ public:
     test_id = "abc";
     test_org = "test org";
     test_device = "test device";
-    test_mac = "ab12cd34ef56";
+    test_mac = { 12, 34, 56, 78, 90, 123 };
     test_time.day = 6;
     test_time.month = 6;
     test_time.year = 2020;

@@ -263,7 +263,14 @@ bool _OT_ProtocolV2::connect_and_exchange_impl(BLEClient *bleClient, BLEAdvertis
 
   log_i("BLE central Recv: %s", buf.c_str());
   
-  // TODO: store data read into connectionRecord somewhere
+  // store data read into connectionRecord somewhere
+  // TS_Storage.peer_log_incident(std::string &id, std::string &org, std::string &deviceType, int8_t rssi, TS_DateTime *current, TS_MacAddress &deviceMac);
+  TS_DateTime datetime;
+  TS_HAL.rtc_get(datetime);
+  TS_MacAddress deviceMac;
+  get_mac_from_ble_address(address, deviceMac);
+  log_i("Logging incident %s %s %s %i", connectionRecord.id.c_str(), connectionRecord.org.c_str(), connectionRecord.deviceType.c_str(), connectionRecord.rssi);
+  TS_Storage.peer_log_incident(connectionRecord.id, connectionRecord.org, connectionRecord.deviceType, connectionRecord.rssi, &datetime, deviceMac);
 
   return true;
 }
@@ -462,6 +469,18 @@ bool _OT_ProtocolV2::process_central_read_request(std::string& payload, OT_Conne
   if(connectionRecord.deviceType.length() > OT_CR_ID_MAX) return false;
 
   return true;
+}
+
+void _OT_ProtocolV2::get_mac_from_ble_address(BLEAddress &fromBleAddress, TS_MacAddress &toMacAddress)
+{
+  esp_bd_addr_t *src = fromBleAddress.getNative();
+
+  toMacAddress.b[0] = *src[0];
+  toMacAddress.b[1] = *src[1];
+  toMacAddress.b[2] = *src[2];
+  toMacAddress.b[3] = *src[3];
+  toMacAddress.b[4] = *src[4];
+  toMacAddress.b[5] = *src[5];  
 }
 
 

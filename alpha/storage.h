@@ -29,13 +29,15 @@ struct TS_Settings
   bool upload_flag;
 };
 
+typedef struct TS_MacAddress { uint8_t b[6]; } TS_MacAddress;
+
 struct TS_Peer
 {
   TS_Peer();
   
   uint16_t id;  // may not be used until just about to store
 
-  std::string deviceMac;
+  TS_MacAddress deviceMac;
   std::string org;
   std::string deviceType;
 
@@ -123,7 +125,7 @@ class _TS_Storage
     // 
 
     // Log incident for OTv2 protocol
-    bool peer_log_incident(std::string &id, std::string &org, std::string &deviceType, int8_t rssi, TS_DateTime *current, std::string &deviceMac);
+    bool peer_log_incident(std::string &id, std::string &org, std::string &deviceType, int8_t rssi, TS_DateTime *current, TS_MacAddress &deviceMac);
 
     // Obtain an iterator to get next day
     // - delete after use
@@ -161,7 +163,7 @@ class _TS_Storage
     std::map<std::string, TS_Peer> peerCache;
 
     // Map of MAC addresses to peer structs
-    std::map<std::string, TS_Peer*> peersMac;
+    std::map<TS_MacAddress, TS_Peer*> peersMac;
 
     //
     // Peer file functions
