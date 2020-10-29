@@ -46,6 +46,18 @@ enum TS_Led
   Red,
 };
 
+enum TS_BlePower
+{
+  N14,  // -14dBm
+  N11,
+  N8,
+  N5,
+  N2,   // -2 dBm
+  P1,   // 1 dBm
+  P4,
+  P7,   // 7 dBm
+};
+
 // Persistent memory
 // - across reboots
 // - 1KB
@@ -149,6 +161,7 @@ class _TS_HAL
     BLEServer* ble_server_get();
     BLEScanResults ble_scan(uint8_t seconds);
     bool ble_is_init();
+    void ble_set_power(TS_BlePower dbm);
 
     
     //
