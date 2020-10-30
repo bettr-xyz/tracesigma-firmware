@@ -36,6 +36,8 @@ struct TS_Peer
   TS_Peer();
   
   uint16_t id;  // may not be used until just about to store
+  bool isTemp;  // is a temp peer
+  const std::string *tempId;  // pointer to tempid, usually in peer map
 
   TS_MacAddress deviceMac;
   std::string org;
@@ -127,6 +129,10 @@ class _TS_Storage
     // Log incident for OTv2 protocol
     bool peer_log_incident(std::string &id, std::string &org, std::string &deviceType, int8_t rssi, TS_DateTime *current, TS_MacAddress &deviceMac);
 
+    // Log incident with similar params iff mac address matches
+    // - returns true if match
+    bool peer_log_repeat_incident_on_mac_match(int8_t rssi, TS_DateTime *current, TS_MacAddress &deviceMac);
+
     // Obtain an iterator to get next day
     // - delete after use
     TS_PeerIterator* peer_get_next(TS_PeerIterator* it);
@@ -163,6 +169,7 @@ class _TS_Storage
     std::map<std::string, TS_Peer> peerCache;
 
     // Map of MAC addresses to peer structs
+    // - expires when mac has changed (and requeried) or peer flushed (when tempid rotates)
     std::map<TS_MacAddress, TS_Peer*> peersMac;
 
     //
@@ -192,6 +199,7 @@ class _TS_Storage
     void erase_peercache_by_tempid(const std::string &tempId);
     void move_temppeer_to_peercache(std::map<std::string, TS_Peer>::iterator &peer);
     void create_temppeer(const std::string &tempId, const TS_Peer &peer);
+    void compare_and_update_peersmac(const std::string &tempId, TS_Peer *peer, TS_MacAddress &mac);
 };
 
 extern _TS_Storage TS_Storage;

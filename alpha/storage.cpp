@@ -66,8 +66,9 @@ bool operator<(const TS_MacAddress& l, const TS_MacAddress& r)
 //
 
 TS_Peer::TS_Peer()
-: id(0), mins(0), rssi_min(0), rssi_max(0), rssi_sum(0), rssi_samples(0), rssi_dsquared(0)
+: id(0), mins(0), rssi_min(0), rssi_max(0), rssi_sum(0), rssi_samples(0), rssi_dsquared(0), isTemp(true)
 {
+  deviceMac.b[0] = deviceMac.b[1] = deviceMac.b[2] = deviceMac.b[3] = deviceMac.b[4] = deviceMac.b[5] = 0;
 }
 
 //
@@ -328,8 +329,9 @@ bool _TS_Storage::peer_log_incident(std::string &id, std::string &org, std::stri
     if (peer != this->tempPeers.end())
     {
       // found, cumulate rssi samples
-      peer_rssi_add_sample(&peer->second, rssi);
-  
+      this->peer_rssi_add_sample(&peer->second, rssi);
+      this->compare_and_update_peersmac(id, &peer->second, deviceMac); 
+        
       // update nearest minutes
       int peerTimeDiff = time_diff(currentTimeToSecs, time_to_secs(&peer->second.firstSeen), SECS_PER_DAY);
       peer->second.mins = peerTimeDiff / 60;
@@ -358,7 +360,8 @@ bool _TS_Storage::peer_log_incident(std::string &id, std::string &org, std::stri
     if (peer != this->peerCache.end())
     {
       // found, cumulate rssi samples
-      peer_rssi_add_sample(&peer->second, rssi);
+      this->peer_rssi_add_sample(&peer->second, rssi);
+      this->compare_and_update_peersmac(id, &peer->second, deviceMac); 
   
       // update nearest minutes
       int peerTimeDiff = time_diff(currentTimeToSecs, time_to_secs(&peer->second.firstSeen), SECS_PER_DAY);
@@ -381,6 +384,23 @@ bool _TS_Storage::peer_log_incident(std::string &id, std::string &org, std::stri
     this->create_temppeer(id, peer);
     return true;
   }
+}
+
+// Log incident with similar params iff mac address matches
+// - returns true if match
+bool _TS_Storage::peer_log_repeat_incident_on_mac_match(int8_t rssi, TS_DateTime *current, TS_MacAddress &deviceMac)
+{
+  auto peerPtr = this->peersMac.find(deviceMac);
+  if (peerPtr == this->peersMac.end())
+  {
+    // no mac match
+    return false;
+  }
+
+  // match found
+  std::string localTempId( peerPtr->second->tempId->c_str() );
+  log_i("Calling peer_log_incident from peer_log_repeat_incident_on_mac_match for previously seen device");
+  return this->peer_log_incident(localTempId, peerPtr->second->org, peerPtr->second->deviceType, rssi, current, deviceMac);
 }
 
 TS_PeerIterator* _TS_Storage::peer_get_next(TS_PeerIterator* it)
@@ -960,14 +980,20 @@ void _TS_Storage::erase_peercache_by_tempid(const std::string &tempId)
 // - no need to erase potential association in peersMac
 void _TS_Storage::move_temppeer_to_peercache(std::map<std::string, TS_Peer>::iterator &peer)
 {
-  this->peerCache[ peer->first ] = peer->second;
+  auto p = peer->second;
+  auto tempId = peer->first;
+  p.isTemp = false;
+  this->peerCache[ tempId ] = p;
   this->tempPeers.erase(peer);
-
+  
   // update pointer of peersMac
   // - point to struct in peerCache instead of tempPeers
   // TODO: optimization we should just store pointer of TS_Peer struct
-  auto p = peer->second;
-  this->peersMac[peer->second.deviceMac] = &(this->peerCache[peer->first]);
+  // set related ptrs in peer's tempId and peersMac
+  auto peerIter = this->peerCache.find(tempId);
+  peerIter->second.tempId = &(peerIter->first);
+  this->peersMac[p.deviceMac] = &(peerIter->second);
+  // TODO: maybe we can use &peer here? 
 }
 
 // Create entry in tempPeer
@@ -976,8 +1002,27 @@ void _TS_Storage::create_temppeer(const std::string &tempId, const TS_Peer &peer
 {
   log_i("TempPeer created with tempId: %s", tempId.c_str());
   this->tempPeers[tempId] = peer;
-  this->peersMac[peer.deviceMac] = &(this->tempPeers[tempId]);
+
+  // set related ptrs in peer's tempId and peersMac
+  auto peerIter = this->tempPeers.find(tempId);
+  peerIter->second.tempId = &(peerIter->first);
+  this->peersMac[peer.deviceMac] = &(peerIter->second);
+  // TODO: maybe we can use &peer here ?
 }
 
+void _TS_Storage::compare_and_update_peersmac(const std::string &tempId, TS_Peer *peer, TS_MacAddress &mac)
+{
+  if(memcmp(&(peer->deviceMac), &mac, sizeof(struct TS_MacAddress)) == 0)
+  {
+    return;
+  }
 
-
+  // old and new macs are different
+  // remove old peersMac
+  this->peersMac.erase(peer->deviceMac);
+  // set new mac
+  peer->deviceMac = mac;
+  // add new peersMac 
+  //auto peerIter = this->tempPeers.find(tempId);
+  this->peersMac[peer->deviceMac] = peer;
+}

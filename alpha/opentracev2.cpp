@@ -60,8 +60,6 @@ void _OT_ProtocolV2::begin()
   // Setup BLE and GATT profile
   BLEDevice::setMTU(OT_CR_MAXLEN);  // try to send whole message in 1 frame
   this->bleServer = TS_HAL.ble_server_get();
-  //disable on connect/disconnect callbacks
-  // this->bleServer->setCallbacks(this);
   this->bleService = bleServer->createService(this->serviceUUID);
 
   this->bleCharacteristic = bleService->createCharacteristic(this->characteristicUUID, BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE);
@@ -175,11 +173,18 @@ bool _OT_ProtocolV2::scan_and_connect(uint8_t seconds, int8_t rssiCutoff)
 
     log_i("%s rssi: %d", deviceAddress.toString().c_str(), rssi);
 
-    // We only want to exchange if it has not been exchanged for more than some mins
+    // We only want to exchange if its an unknown mac
+    TS_DateTime datetime;
+    TS_HAL.rtc_get(datetime);
+    TS_MacAddress deviceMac;
+    this->get_mac_from_ble_address(deviceAddress, deviceMac);
+    if(TS_Storage.peer_log_repeat_incident_on_mac_match(rssi, &datetime, deviceMac)) {
+      return true;
+    }
     
     // Connect to each one and read + write iff parameters are correct
-    // TODO: see if we can parallelize this process
-    this->connect_and_exchange(device, deviceAddress, rssi);
+    // TODO: optimization: see if we can parallelize this process
+    return this->connect_and_exchange(device, deviceAddress, rssi);
   }
 }
 
@@ -268,7 +273,7 @@ bool _OT_ProtocolV2::connect_and_exchange_impl(BLEClient *bleClient, BLEAdvertis
   TS_DateTime datetime;
   TS_HAL.rtc_get(datetime);
   TS_MacAddress deviceMac;
-  get_mac_from_ble_address(address, deviceMac);
+  this->get_mac_from_ble_address(address, deviceMac);
   log_i("Logging incident %s %s %s %i", connectionRecord.id.c_str(), connectionRecord.org.c_str(), connectionRecord.deviceType.c_str(), connectionRecord.rssi);
   TS_Storage.peer_log_incident(connectionRecord.id, connectionRecord.org, connectionRecord.deviceType, connectionRecord.rssi, &datetime, deviceMac);
 
@@ -482,8 +487,3 @@ void _OT_ProtocolV2::get_mac_from_ble_address(BLEAddress &fromBleAddress, TS_Mac
   toMacAddress.b[4] = *src[4];
   toMacAddress.b[5] = *src[5];  
 }
-
-
-
-
-
