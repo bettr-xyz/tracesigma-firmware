@@ -189,6 +189,10 @@ class _TS_HAL
     // logs a failure message and reboots
     void fail_reboot(const char*);
 
+    uint8_t get_exchange_count();
+    void set_exchange_count(uint8_t);
+    void inc_exchange_count();
+
   private:
     bool            bleInitialized;
     BLEScan*        pBLEScan;
@@ -198,6 +202,8 @@ class _TS_HAL
     TS_IOButton* buttonA;
     TS_IOButton* buttonB;
     TS_IOButton* buttonP;
+
+    uint8_t exchangeCount;
 
 };
 
