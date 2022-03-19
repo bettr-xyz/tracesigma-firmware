@@ -77,7 +77,7 @@ void _OT_ProtocolV2::begin()
 void _OT_ProtocolV2::update()
 {
   // don't turn off radio if we have connected clients
-  uint16_t connectedCount = OT_ProtocolV2.get_connected_count();
+  uint16_t connectedCount = this->get_connected_count();
   uint16_t sleepDuration = TS_HAL.random_get(1000, 3000);
 
   log_i("Devices connected: %d", connectedCount);
@@ -107,19 +107,19 @@ void _OT_ProtocolV2::update()
   if(secs_diff >= SCAN_INTERVAL_SECS)
   {
     // spend up to 1s scanning, lowest acceptable rssi: -95
-    OT_ProtocolV2.scan_and_connect(1, -95);
+    this->scan_and_connect(1, -95);
 
     lastScanTs = secs;
   }
 
   // enable advertising
-  OT_ProtocolV2.advertising_start();
+  this->advertising_start();
     
   // just advertise for 1s
   TS_HAL.sleep(TS_SleepMode::Task, ADVERTISE_DURATION);
     
   // disable advertising, get back to sleep
-  OT_ProtocolV2.advertising_stop();
+  this->advertising_stop();
 }
 
 BLEUUID& _OT_ProtocolV2::getServiceUUID()
@@ -312,9 +312,23 @@ void _OT_ProtocolV2::update_characteristic_cache()
   xSemaphoreGive( characteristicCacheMutex );
 }
 
-void _OT_ProtocolV2::onConnect(BLEServer* pServer)
+void _OT_ProtocolV2::onConnect(BLEServer* pServer, esp_ble_gatts_cb_param_t *param)
 {
   log_i("Device connected to BLE");
+
+  // Reject connection if mac address was from a previously-polled node
+  gatts_connect_evt_param *connectParam = &param->connect;
+  uint16_t connectId = connectParam->conn_id;
+  esp_bd_addr_t connectMac = connectParam->remote_bda;
+
+  // TODO with connectMac and connectId
+  // if ( ...) {
+  //   pServer->disconnect(connectId);
+  // }
+  
+
+  // call BLEDevice::startAdvertising() again to resume advertising / other connections
+  this->advertising_start();
 }
 
 void _OT_ProtocolV2::onDisconnect(BLEServer* pServer)

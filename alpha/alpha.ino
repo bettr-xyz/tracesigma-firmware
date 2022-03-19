@@ -51,8 +51,8 @@ void loop() {
   TS_POWER.update();
 
   // Wifi 
-  TS_RADIO.wifi_enable(TS_POWER.get_state() == TS_PowerState::HIGH_POWER);
-  TS_RADIO.wifi_update();
+  //TS_RADIO.wifi_enable(TS_POWER.get_state() == TS_PowerState::HIGH_POWER);
+  //TS_RADIO.wifi_update();
 
   if (TS_HAL.ble_is_init())
   {
